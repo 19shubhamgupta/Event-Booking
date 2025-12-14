@@ -67,28 +67,70 @@ const useEditorStore = create((set) => ({
       };
     }),
 
+  // Add a block as a child to a parent block (for columns, hero, etc.)
+  addBlockToParent: (parentBlockId, childBlock) =>
+    set((state) => {
+      if (!state.currentPage) return state;
+
+      const updateBlockChildren = (blocks) => {
+        return blocks.map((block) => {
+          if (block.id === parentBlockId) {
+            return {
+              ...block,
+              children: [...(block.children || []), childBlock],
+            };
+          }
+          // Recursively check children
+          if (block.children && block.children.length > 0) {
+            return {
+              ...block,
+              children: updateBlockChildren(block.children),
+            };
+          }
+          return block;
+        });
+      };
+
+      return {
+        currentPage: {
+          ...state.currentPage,
+          blocks: updateBlockChildren(state.currentPage.blocks),
+        },
+        selectedBlockId: childBlock.id,
+      };
+    }),
+
   // Update block properties
   updateBlock: (blockId, newProps) =>
     set((state) => {
       if (!state.currentPage) return state;
 
-      const updatedBlocks = state.currentPage.blocks.map((block) => {
-        if (block.id === blockId) {
-          return {
-            ...block,
-            props: {
-              ...block.props,
-              ...newProps,
-            },
-          };
-        }
-        return block;
-      });
+      const updateBlockRecursive = (blocks) => {
+        return blocks.map((block) => {
+          if (block.id === blockId) {
+            return {
+              ...block,
+              props: {
+                ...block.props,
+                ...newProps,
+              },
+            };
+          }
+          // Recursively update children
+          if (block.children && block.children.length > 0) {
+            return {
+              ...block,
+              children: updateBlockRecursive(block.children),
+            };
+          }
+          return block;
+        });
+      };
 
       return {
         currentPage: {
           ...state.currentPage,
-          blocks: updatedBlocks,
+          blocks: updateBlockRecursive(state.currentPage.blocks),
         },
       };
     }),
@@ -98,14 +140,25 @@ const useEditorStore = create((set) => ({
     set((state) => {
       if (!state.currentPage) return state;
 
-      const filteredBlocks = state.currentPage.blocks.filter(
-        (block) => block.id !== blockId
-      );
+      const deleteBlockRecursive = (blocks) => {
+        return blocks
+          .filter((block) => block.id !== blockId)
+          .map((block) => {
+            // Recursively delete from children
+            if (block.children && block.children.length > 0) {
+              return {
+                ...block,
+                children: deleteBlockRecursive(block.children),
+              };
+            }
+            return block;
+          });
+      };
 
       return {
         currentPage: {
           ...state.currentPage,
-          blocks: filteredBlocks,
+          blocks: deleteBlockRecursive(state.currentPage.blocks),
         },
         selectedBlockId: null,
       };

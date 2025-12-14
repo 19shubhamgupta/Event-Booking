@@ -4,13 +4,13 @@ import useEditorStore from "../../store/useEditorstore";
 
 const BlockRender = ({ block }) => {
   const defn = getBlockDefinition(block.type);
-  const { selectBlock , selectedBlockId, deleteBlock} = useEditorStore();
+  const { selectBlock, selectedBlockId, deleteBlock } = useEditorStore();
   const isSelected = selectedBlockId === block.id;
 
   let Component;
-  if(isSelected && defn.editorComponent){
+  if (isSelected && defn.editorComponent) {
     Component = defn.editorComponent;
-  }else{
+  } else {
     Component = defn.component;
   }
 
@@ -22,13 +22,11 @@ const BlockRender = ({ block }) => {
       }}
       className="relative"
     >
-      <Component {...block.props}
-      blockId={block.id}
-      >
+      <Component {...block.props} blockId={block.id}>
         {block.children &&
-          block.children.map((childBlock) =>
-            BlockRender({ block: childBlock })
-          )}
+          block.children.map((childBlock) => (
+            <BlockRender key={childBlock.id} block={childBlock} />
+          ))}
       </Component>
 
       {/* Block Controls (shown on hover/selection) */}
@@ -45,7 +43,6 @@ const BlockRender = ({ block }) => {
           </button>
         </div>
       )}
-
     </div>
   );
 };
