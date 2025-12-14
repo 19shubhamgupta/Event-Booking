@@ -13,16 +13,8 @@ export const useStoreAuth = create((set) => ({
   isLoggingIn: false,
   isCheckingAuth: false,
   showNavBar: true,
-  isChattingToGroup: false,
 
-  getGooglePage: () => {
-    try {
-      const url = `${BASE_URL}/api/auth/google`;
-      window.location.href = url;
-    } catch {
-      toast.error("Failed to initiate Google login");
-    }
-  },
+  
   setprofileClicked: (val) => {
     set({ profileClicked: val });
   },

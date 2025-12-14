@@ -5,7 +5,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import HomePage from "./Pages/HomePage.jsx";
 import LoginPage from "./Pages/LoginPage.jsx";
 import SignupPage from "./Pages/SignupPage.jsx";
-import SettingPage from "./Pages/SettingPage.jsx";
+import OrganizeRoute from "./lib/OrganizeRoute.jsx";
+import OrganizePage from "./Pages/OrganizePage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -13,11 +14,12 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: "/", element: <HomePage /> },
-      { path: "/login", element: <LoginPage /> },
-      { path: "/signup", element: <SignupPage /> },
-      { path: "/settings", element: <SettingPage /> },
+      { path: "/organize", element: <OrganizeRoute /> },
+      { path: "/create-draft/:id", element: <OrganizePage /> },
     ],
   },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/signup", element: <SignupPage /> },
 ]);
 
 createRoot(document.getElementById("root")).render(

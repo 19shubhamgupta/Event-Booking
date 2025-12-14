@@ -1,82 +1,171 @@
 import { Link } from "react-router-dom";
 import { useStoreAuth } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import {
+  LogOut,
+  Calendar,
+  Film,
+  Search,
+  UserPlus,
+  LogIn,
+  Plus,
+  User,
+} from "lucide-react";
+import { useEffect } from "react";
+import { useOrganizationStore } from "../store/useOrganization";
 
 const NavBar = () => {
   const { logout, authUser, showNavBar } = useStoreAuth();
+  const {verifyOrganization  , organization } = useOrganizationStore()
+
+  useEffect(()=>{
+    verifyOrganization()
+  },[])
+
+  const categoryLinks = [
+    { name: "Events", path: "/events", icon: Calendar },
+    { name: "Movies", path: "/movies", icon: Film },
+  ];
+
+  const authLinks = authUser
+    ? organization
+      ? [
+          { name: "Dashboard", path: "/dashboard", icon: Plus },
+          { name: "Organize", path: "/organize", icon: Plus },
+          { name: "Logout", action: logout, icon: LogOut, isButton: true },
+        ]
+      : [
+          { name: "Organize", path: "/organize", icon: Plus },
+          { name: "Logout", action: logout, icon: LogOut, isButton: true },
+        ]
+    : [
+        { name: "Login", path: "/login", icon: LogIn },
+        { name: "Sign Up", path: "/signup", icon: UserPlus },
+      ];
 
   return showNavBar ? (
-    <header
-      className="bg-gray-900 border-b border-gray-700 fixed w-full top-0 z-40 
-    backdrop-blur-lg shadow-lg"
-    >
-      <div className="container mx-auto px-4 h-16">
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-8">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 hover:opacity-80 transition-all"
+    <header className="fixed w-full text-center top-0 z-40 bg-transparent  flex items-center justify-center mt-2">
+      <div className="container w-[80%] bg-[#6d27da] px-10 h-16 rounded-2xl">
+        <div className="flex items-center justify-between h-full ">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-all"
+          >
+            <div
+              className="size-9 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#e7dbf8" }}
             >
-              <div className="size-9 rounded-lg bg-blue-600 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-lg font-bold text-white">Chit Chat</h1>
-            </Link>
+              <Calendar className="w-5 h-5" style={{ color: "#6d27da" }} />
+            </div>
+            <h1 className="text-lg font-bold text-white">EventHub</h1>
+          </Link>
+
+          {/* Category Links */}
+          <nav className="hidden md:flex items-center gap-3">
+            {categoryLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className="flex items-center gap-2 px-2 rounded-lg transition-all duration-200 hover:bg-white/10"
+                  style={{ color: "#e7dbf8" }}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-semibold text-lg">{link.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md  hidden lg:block">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                style={{ color: "#6d27da" }}
+              />
+              <input
+                type="text"
+                placeholder="Search events, movies..."
+                className="w-full pl-10 pr-4 py-2 rounded-lg border-0 focus:ring-2 focus:outline-none"
+                style={{
+                  backgroundColor: "#e7dbf8",
+                  color: "#6d27da",
+                  focusRing: "#e7dbf8",
+                }}
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Link
-              to={"/settings"}
-              className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 
-              px-4 py-2 rounded-lg gap-2 transition-all duration-200 flex items-center
-              hover:shadow-lg"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </Link>
+          {/* Auth Links */}
+          <div className="flex items-center gap-5 ">
+            {authLinks.map((link) => {
+              const Icon = link.icon;
 
-            {authUser ? (
-              <>
-                <Link
-                  to={"/profile"}
-                  className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 
-                px-4 py-2 rounded-lg gap-2 transition-all duration-200 flex items-center
-                hover:shadow-lg"
-                >
-                  <User className="size-5" />
-                  <span className="hidden sm:inline">Profile</span>
-                </Link>
+              if (link.isButton && link.name === "Organize") {
+                return (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:bg-white/10"
+                    style={{
+                      backgroundColor: "transparent",
+                      color: "#e7dbf8",
+                      border: "1px solid #e7dbf8",
+                    }}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="hidden sm:inline font-semibold">
+                      {link.name}
+                    </span>
+                  </Link>
+                );
+              }
 
-                <button
-                  className="bg-red-600 hover:bg-red-700 text-white border border-red-500
-                px-4 py-2 rounded-lg gap-2 transition-all duration-200 flex items-center
-                hover:shadow-lg"
-                  onClick={logout}
-                >
-                  <LogOut className="size-5" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
-              </>
-            ) : (
-              <>
+              if (link.isButton && link.name === "Logout") {
+                return (
+                  <button
+                    key={link.name}
+                    onClick={link.action}
+                    className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 hover:opacity-80 border-2"
+                    style={{
+                      borderColor: "#e7dbf8",
+                    }}
+                    title="Profile"
+                  >
+                    <img
+                      src={authUser?.profilePicture || "/avatar.png"}
+                      alt="Profile"
+                      className="w-full h-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "/avatar.png";
+                      }}
+                    />
+                  </button>
+                );
+              }
+
+              return (
                 <Link
-                  to={"/signup"}
-                  className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 
-                px-4 py-2 rounded-lg gap-2 transition-all duration-200 flex items-center
-                hover:shadow-lg"
+                  key={link.name}
+                  to={link.path}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
+                  style={{
+                    backgroundColor:
+                      link.name === "Sign Up" ? "#e7dbf8" : "transparent",
+                    color: link.name === "Sign Up" ? "#6d27da" : "#e7dbf8",
+                    border:
+                      link.name === "Sign Up" ? "none" : "1px solid #e7dbf8",
+                  }}
                 >
-                  <span className="hidden sm:inline">Sign Up</span>
+                  <Icon className="w-5 h-5" />
+                  <span className="hidden sm:inline font-semibold">
+                    {link.name}
+                  </span>
                 </Link>
-                <Link
-                  to={"/login"}
-                  className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 
-                px-4 py-2 rounded-lg gap-2 transition-all duration-200 flex items-center
-                hover:shadow-lg font-medium"
-                >
-                  <span className="hidden sm:inline">Login</span>
-                </Link>
-              </>
-            )}
+              );
+            })}
           </div>
         </div>
       </div>

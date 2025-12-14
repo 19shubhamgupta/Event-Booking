@@ -1,0 +1,78 @@
+import { create } from "zustand";
+import { axiosInstance } from "../lib/axios";
+import toast from "react-hot-toast";
+
+export const useOrganizationStore = create((set) => ({
+  // states
+  verifyingOrganization: false,
+  organization: null,
+
+  creatingOrganization: false,
+
+  creatingEvent: false,
+
+  //actions
+  verifyOrganization: async () => {
+    try {
+      set({ verifyingOrganization: true });
+      const res = await axiosInstance.get("/organization/verify");
+      set({ organization: res.data });
+    } catch (err) {
+      if (err.response) {
+        toast.error(err.response.data?.message || "Verififaction Failed");
+      } else {
+        toast.error("Network error — please try again");
+      }
+    } finally {
+      set({ verifyingOrganization: false });
+    }
+  },
+
+  createOrganiz: async (data) => {
+    try {
+      set({ creatingOrganization: true });
+      const res = await axiosInstance.post(
+        "/organization/create-organization",
+        data
+      );
+      set({ organization: res.data });
+    } catch (err) {
+      if (err.response) {
+        toast.error(err.response.data?.message || "Verififaction Failed");
+      } else {
+        toast.error("Network error — please try again");
+      }
+    } finally {
+      set({ creatingOrganization: false });
+    }
+  },
+
+  createEventOndb: async function (eventData) {
+    try {
+      set({ creatingEvent: true });
+      const eData = {
+        eventData,
+      };
+      const res = await axiosInstance.post("/organization/create-event", eData);
+
+      // Set the necessary event deatils to to organization
+      //set((state)=>{
+      //   state.organization : {
+      //     ...organization,
+
+      //   }
+      // })
+      console.log("res from server aftre creating event : ", res.data)
+      toast.success("Event created Successfully");
+      return res.data.pageId;
+    } catch (err) {
+      if (err.response) {
+        toast.error(err.response.data?.message || "Creation Failed");
+      } else {
+        toast.error("Network error — please try again");
+      }
+    } finally {
+      set({ creatingEvent: false });
+    }
+  },
+}));

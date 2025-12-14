@@ -5,17 +5,23 @@ import { useStoreAuth } from "../store/useAuthStore";
 
 function LoginPage() {
   const { register, handleSubmit } = useForm();
-  const { login, isLoggingIn, toggleNav, getGooglePage } = useStoreAuth();
+  const { login, isLoggingIn, toggleNav, getGooglePage, authUser } =
+    useStoreAuth();
   const navigate = useNavigate();
+
   useEffect(() => {
     toggleNav(false);
   }, []);
 
-  const loginForm = (data) => {
-    login(data).then(() => {
+  useEffect(() => {
+    if (authUser) {
       toggleNav(true);
       navigate("/");
-    });
+    }
+  }, [authUser, navigate, toggleNav]);
+
+  const loginForm = (data) => {
+    login(data);
   };
 
   const handleGoogleLogin = () => {

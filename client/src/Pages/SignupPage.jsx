@@ -6,17 +6,22 @@ import { useStoreAuth } from "../store/useAuthStore";
 function SignupPage() {
   const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
-  const { signup, isSigningUp, toggleNav, getGooglePage } = useStoreAuth();
+  const { signup, isSigningUp, toggleNav, getGooglePage, authUser } =
+    useStoreAuth();
 
   useEffect(() => {
     toggleNav(false);
   }, []);
 
-  const signupForm = (data) => {
-    signup(data).then(() => {
+  useEffect(() => {
+    if (authUser) {
       toggleNav(true);
       navigate("/");
-    });
+    }
+  }, [authUser, navigate, toggleNav]);
+
+  const signupForm = (data) => {
+    signup(data);
   };
 
   const handlegoogle = () => {

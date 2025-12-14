@@ -19,6 +19,7 @@ const userSchemsa = new mongoose.Schema(
       type: String,
       default: "/images/defaultProfilePic",
     },
+    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: "Organizer" },
   },
   {
     timestamps: true,
