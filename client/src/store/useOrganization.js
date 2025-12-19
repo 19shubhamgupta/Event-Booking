@@ -15,7 +15,7 @@ export const useOrganizationStore = create((set) => ({
   verifyOrganization: async () => {
     try {
       set({ verifyingOrganization: true });
-      const res = await axiosInstance.get("/organization/verify");
+      const res = await axiosInstance.get("/organize/organization/verify");
       set({ organization: res.data });
     } catch (err) {
       if (err.response) {
@@ -32,13 +32,26 @@ export const useOrganizationStore = create((set) => ({
     try {
       set({ creatingOrganization: true });
       const res = await axiosInstance.post(
-        "/organization/create-organization",
+        "/organize/organization/create-organization",
         data
       );
       set({ organization: res.data });
+
+      // 🔥 Refresh JWT token to include organizationId
+      // Wait for Kafka to process event and update DB (small delay)
+      setTimeout(async () => {
+        try {
+          await axiosInstance.post("/user/auth/refresh-token");
+          console.log("✅ Token refreshed with organization data");
+          toast.success("Organization created successfully!");
+        } catch (refreshError) {
+          console.warn("Token refresh failed (non-critical):", refreshError);
+          toast.success("Organization created! Please refresh the page.");
+        }
+      }, 1000); // 1 second delay for Kafka processing
     } catch (err) {
       if (err.response) {
-        toast.error(err.response.data?.message || "Verififaction Failed");
+        toast.error(err.response.data?.message || "Creation Failed");
       } else {
         toast.error("Network error — please try again");
       }
@@ -53,7 +66,10 @@ export const useOrganizationStore = create((set) => ({
       const eData = {
         eventData,
       };
-      const res = await axiosInstance.post("/organization/create-event", eData);
+      const res = await axiosInstance.post(
+        "/organize/organization/create-event",
+        eData
+      );
 
       // Set the necessary event deatils to to organization
       //set((state)=>{
@@ -62,7 +78,7 @@ export const useOrganizationStore = create((set) => ({
 
       //   }
       // })
-      console.log("res from server aftre creating event : ", res.data)
+      console.log("res from server aftre creating event : ", res.data);
       toast.success("Event created Successfully");
       return res.data.pageId;
     } catch (err) {

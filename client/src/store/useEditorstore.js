@@ -21,7 +21,7 @@ const useEditorStore = create((set) => ({
   getCurrentPage: async (pageId) => {
     try {
       set({ isLoading: true });
-      const res = await axiosInstance.get(`/page/get-page/${pageId}`);
+      const res = await axiosInstance.get(`/organize/page/get-page/${pageId}`);
       set({
         currentPage: res.data,
       });
@@ -189,7 +189,7 @@ const useEditorStore = create((set) => ({
     try {
       set({ isSaving: true });
 
-      const res = await axiosInstance.put(`/page/update-page/${currPage._id}`, {
+      const res = await axiosInstance.put(`/organize/page/update-page/${currPage._id}`, {
         title: currPage.title,
         blocks: currPage.blocks || [],
       });

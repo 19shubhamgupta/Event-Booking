@@ -7,6 +7,7 @@ import LoginPage from "./Pages/LoginPage.jsx";
 import SignupPage from "./Pages/SignupPage.jsx";
 import OrganizeRoute from "./lib/OrganizeRoute.jsx";
 import OrganizePage from "./Pages/OrganizePage.jsx";
+import ViewEventPage from "./Pages/ViewEventPage.jsx"
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ const router = createBrowserRouter([
       { path: "/", element: <HomePage /> },
       { path: "/organize", element: <OrganizeRoute /> },
       { path: "/create-draft/:id", element: <OrganizePage /> },
+      {path: "/view-event", element : <ViewEventPage/>}
     ],
   },
   { path: "/login", element: <LoginPage /> },

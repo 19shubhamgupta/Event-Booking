@@ -1,5 +1,7 @@
 import React from "react";
 import { useStoreAuth } from "../store/useAuthStore";
+import UpcomingEventsSection from "../Components/HomePageComponents/UpcomingEventsSection";
+import CategoryEventsSection from "../Components/HomePageComponents/CategoryEventsSection";
 
 const HomePage = () => {
   const { authUser } = useStoreAuth();
@@ -17,7 +19,13 @@ const HomePage = () => {
             />
           </div>
         </div>
-        <div className="mt-42w-full min-h-screen border-t-5 border-[#6d27da] bg-[#e7dbf8] rounded-t-[10vw]"></div>
+        <div className="mt-8 w-full min-h-screen border-t-4 border-[#6d27da] bg-[#e7dbf8] rounded-t-[10vw] pt-8">
+          {/* Upcoming events */}
+          <UpcomingEventsSection />
+
+          {/* Category Events */}
+          <CategoryEventsSection />
+        </div>
       </div>
     )
   );

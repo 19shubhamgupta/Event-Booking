@@ -41,8 +41,13 @@ const Canvas = ({ ControlBtns }) => {
 
   return (
     <div
-      className="flex-1 bg-gray-50 overflow-y-auto p-8"
+      className="flex-1 bg-gray-50 overflow-y-auto p-8 "
       onClick={() => deselectBlock()}
+      style={{
+    overflow: "auto",
+    scrollbarWidth: "none", // Firefox
+    msOverflowStyle: "none", // IE/Edge
+  }}
     >
       <div className="max-w-4xl mx-auto bg-white shadow-lg min-h-screen">
         {/* Page Title */}
