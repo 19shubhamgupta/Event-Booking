@@ -45,6 +45,11 @@ const eventInventorySchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    organizationId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     ticketTypes: {
       type: [ticketTypeSchema],
       required: true,
@@ -138,6 +143,7 @@ eventInventorySchema.pre("save", function (next) {
   next();
 });
 
+/*
 // ATOMIC OPERATION: Reserve tickets (prevents double booking)
 eventInventorySchema.statics.reserveTicketsAtomic = async function (
   eventId,
@@ -265,5 +271,5 @@ eventInventorySchema.statics.cancelBookingAtomic = async function (
 
   return result;
 };
-
+*/
 module.exports = mongoose.model("EventInventory", eventInventorySchema);
