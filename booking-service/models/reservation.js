@@ -55,13 +55,6 @@ array.forEach(element => {
           sparse: true,
           index: true,
         },
-    
-        // Cleanup tracking for background job
-        cleanupJobProcessed: {
-          type: Boolean,
-          default: false,
-          index: true,
-        },
       },
       { timestamps: true }
     );

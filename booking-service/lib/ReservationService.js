@@ -2,14 +2,18 @@ const mongoose = require("mongoose");
 const Reservation = require("../models/reservation");
 
 class ReservationService {
-
-    
   // Get reservation by ID
-  async getReservationById(reservationId) {
+  async getReservationById(reservationId, session = null) {
     try {
       const query = { _id: reservationId };
 
-      const reservation = await Reservation.findOne(query);
+      const queryBuilder = Reservation.findOne(query);
+
+      if (session) {
+        queryBuilder.session(session);
+      }
+
+      const reservation = await queryBuilder;
       if (!reservation) {
         throw new Error("Reservation not found");
       }
@@ -52,7 +56,6 @@ class ReservationService {
         })),
         status: "active",
         expiresAt,
-        cleanupJobProcessed: false,
       });
 
       await reservation.save({ session });
@@ -67,18 +70,64 @@ class ReservationService {
     }
   }
 
-  // Update reservation status (called within transaction)
-  async updateReservationStatus(reservationId, status, session) {
+  // Get reservations by status
+  async getReservationsByStatus(status, session) {
     try {
-      const reservation = await Reservation.findById(reservationId).session(
+      const reservations = await Reservation.find({ status: status }).session(
         session
       );
-      if (!reservation) {
-        throw new Error("Reservation not found");
+      if (!reservations) {
+        throw new Error(
+          `No reservations found with the given status : ['${status}']`
+        );
       }
+      return reservations;
+    } catch (error) {
+      console.error("Error fetching reservations by status:", error);
+      throw error;
+    }
+  }
 
-      reservation.status = status;
-      await reservation.save({ session });
+  // Get expired reservations for cleanup (cron job)
+  async getExpiredReservations(session) {
+    try {
+      const expiredReservations = await Reservation.find({
+        status: "active",
+        expiresAt: { $lt: new Date() },
+      })
+        .limit(50) // Process in batches
+        .session(session);
+
+      return expiredReservations;
+    } catch (error) {
+      console.error("Error fetching expired reservations:", error);
+      throw error;
+    }
+  }
+
+  // Update reservation status (called within transaction)
+  async updateReservationStatus(reservationId, currStatus, newStatus, session) {
+    try {
+      const reservation = await Reservation.findOneAndUpdate(
+        {
+          _id: reservationId,
+          status: currStatus, // guard condition
+        },
+        {
+          $set: {
+            status: newStatus,
+            updatedAt: new Date(),
+          },
+        },
+        {
+          new: true, // return updated document
+          session, // participate in transaction
+        }
+      );
+
+      if (!reservation) {
+        throw new Error(`Reservation not found or status is not ${currStatus}`);
+      }
 
       return reservation;
     } catch (error) {

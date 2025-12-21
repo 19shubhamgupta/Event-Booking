@@ -1,13 +1,7 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 
 const ticketSchema = new mongoose.Schema({
-      bookingId: {
-    type: String,
-    required: true,
-    index: true
-  },
   
   userId: {
     type: String,
@@ -20,7 +14,7 @@ const ticketSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-    ticketType: {
+  ticketType: {
     type: String,
     required: true
   },
@@ -35,33 +29,20 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     default: null // For assigned seating
   },
-  
-  // Attendee information
-  attendeeName: {
-    type: String,
-    required: true,
-  },
-  
-  attendeeEmail: {
-    type: String,
-    required: true,
-  },
-
-  attendeePhone: {
-    type: Number,
-    length: 10,
-  },
 
   qrCodeUrl: String,
 
-    // Status tracking
+  // Status tracking
   status: {
     type: String,
     enum: ['active', 'used', 'cancelled', 'refunded'],
     default: 'active',
     index: true
   },
+
 });
+
+ticketSchema.index({userId : 1 , eventId : 1, status : 1})
 
 
 module.exports = mongoose.model('Ticket', ticketSchema);

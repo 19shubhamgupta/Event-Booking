@@ -5,7 +5,9 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bookRouter = require("./routes/bookRouter");
 const reservationRoter = require("./routes/reservationRoter");
-//const kafkaConsumer = require("./lib/kafkaconsumer");
+const kafkaConsumer = require("./lib/kafkaconsumer");
+
+require("./libexpireReservationCleanUp.cron")
 
 const app = express();
 
@@ -29,7 +31,7 @@ app.use("/reserve", reservationRoter);
 async function startServer() {
   try {
     await ConnectDB();
-    //await kafkaConsumer.connect(); // Start listening to events
+    await kafkaConsumer.connect(); // Start listening to events
 
     const PORT = process.env.PORT || 5005;
     app.listen(PORT, () => {
@@ -42,7 +44,7 @@ async function startServer() {
 }
 
 process.on("SIGINT", async () => {
-  //await kafkaConsumer.disconnect();
+  await kafkaConsumer.disconnect();
   process.exit(0);
 });
 

@@ -64,3 +64,62 @@ exports.postReserveTicket = async (req, res) => {
   }
 };
 
+exports.cancelReservation = async (data) => {
+  // due to unsuccessful payment cancel reservation
+  let session = null;
+  try {
+    if (!data.reservationId) {
+      throw new Error("Reservation ID is required");
+    }
+
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    // Read reservation inside transaction for consistency
+    const resv = await ReservationService.getReservationById(
+      data.reservationId,
+      session
+    );
+    if (!resv) {
+      throw new Error("No reservation found");
+    }
+
+    if (resv.status !== "active") {
+      throw new Error(`Cannot cancel reservation with status: ${resv.status}`);
+    }
+
+    for (const t of resv.tickets) {
+      await EventInventoryService.updateInventoryOnReservationCancel(
+        resv.eventId,
+        t.ticketType,
+        t.quantity,
+        session
+      );
+    }
+
+    await ReservationService.updateReservationStatus(
+      resv._id,
+      "active",
+      "cancelled",
+      session
+    );
+    
+    await session.commitTransaction();
+    console.log(`✅ Reservation ${resv._id} cancelled successfully`);
+    
+    return {
+      success: true,
+      message: "Reservation cancelled successfully",
+    };
+  } catch (error) {
+    console.error("Error cancelling reservation:", error);
+    if(session){
+      await session.abortTransaction();
+    }
+    throw error;
+  } finally {
+    if(session){
+      session.endSession();
+    }
+  }
+};

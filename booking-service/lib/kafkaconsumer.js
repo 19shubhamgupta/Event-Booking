@@ -1,16 +1,17 @@
 const { Kafka } = require("kafkajs");
-const user = require("../models/user");
-const { generateToken } = require("./generateToken");
+
+const { bookTickets } = require("../controllers/bookController");
+const { cancelReservation } = require("../controllers/reservationController");
 
 class kafkaConsumer {
   constructor() {
     this.kafka = new Kafka({
-      clientId: "event-booking-user-service",
+      clientId: "event-booking-booking-service",
       brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
     });
 
     this.consumer = this.kafka.consumer({
-      groupId: "user-service-group",
+      groupId: "booking-service-group",
       sessionTimeout: 60000, // 60 seconds (increased from 30s)
       heartbeatInterval: 3000, // 3 seconds
       rebalanceTimeout: 60000, // 60 seconds
@@ -33,7 +34,7 @@ class kafkaConsumer {
 
       // subscribe to topics
       await this.consumer.subscribe({
-        topics: ["organization.created", "organization.updated"],
+        topics: ["payment.complete"],
         fromBeginning: true,
       });
 
@@ -62,46 +63,33 @@ class kafkaConsumer {
 
   async handleEvent(topic, event) {
     switch (topic) {
-      case "organization.created":
-        await this.handleOrganizationCreated(event.data);
-        break;
-      case "organization.updated":
-        await this.handleOrganizationUpdated(event.data);
+      case "payment.complete":
+        await this.handlePaymentComplete(event.data);
         break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
   }
 
-  async handleOrganizationCreated(data) {
-    console.log("Processing organization.created:", data);
-
-    // Update user with organizationId (Kafka consumer ONLY updates DB)
-    await user.findByIdAndUpdate(
-      data.createdBy,
-      {
-        organizationDetails: {
-          organizationId: data.organizationId,
-          organizationName: data.organizationName,
-          organizationMail: data.organizationMail,
-          phoneNo: data.phoneNo,
-        },
-      },
-      { new: true } // Return updated document
-    );
-
-    console.log(
-      `✅ Updated user ${data.createdBy} with org ${data.organizationId}`
-    );
-    console.log(
-      `ℹ️  User needs to refresh token via frontend or re-login to get updated organizationId in JWT`
-    );
+  async handlePaymentComplete(data) {
+    try {
+      if (data.success === true) {
+        await bookTickets(data);
+        console.log("✅ Booking completed successfully");
+      }
+      if (data.success === false) {
+        await cancelReservation(data);
+        console.log("✅ Reservation cancelled successfully");
+      }
+    } catch (error) {
+      console.error(
+        "❌ Error processing payment complete in kafkaconsumer:",
+        error
+      );
+      throw error; // Re-throw to trigger Kafka retry mechanism
+    }
   }
 
-  async handleOrganizationUpdated(data) {
-    console.log("Processing organization.updated:", data);
-    // Handle update logic
-  }
   async disconnect() {
     if (!this.isConnected) return;
 
