@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import BlockRender from "../Components/PageEditor/BlockRender";
 import { useEventStore } from "../store/useEventStore";
+import { useBookingStore } from "../store/useBookingStore";
+import { useNavigate } from "react-router-dom";
 
 // Dummy event data for development
 const dummyEventData = {
@@ -1045,7 +1047,8 @@ const dummyPageData = {
 
 const ViewEventPage = () => {
   const { getEventPage, eventPage, eventData } = useEventStore();
-
+  const {bookEvent , creatingBooking} = useBookingStore()
+const navigate = useNavigate()
   useEffect(() => {
     if (eventData?.page?.pageId) {
       getEventPage(eventData.page.pageId);
@@ -1059,6 +1062,10 @@ const ViewEventPage = () => {
         <div className="text-xl text-gray-600">Loading event...</div>
       </div>
     );
+  }
+
+  const handleBookBtn = async (eve) => {
+    navigate(`/ticket-details/${eventData.eventId}`)
   }
 
   return (
@@ -1106,7 +1113,9 @@ const ViewEventPage = () => {
               </svg>
               <span className="text-lg font-medium">{eventData.city}</span>
             </div>
-            <button className="bg-[#6d27da] hover:bg-[#d63752] text-white px-8 py-3 rounded-lg font-bold text-lg transition-colors shadow-lg">
+            <button className="bg-[#6d27da] hover:bg-[#d63752] text-white px-8 py-3 rounded-lg font-bold text-lg transition-colors shadow-lg"
+            onClick={() =>handleBookBtn(eventData)}
+            >
               Book Now
             </button>
           </div>
@@ -1134,7 +1143,8 @@ const ViewEventPage = () => {
 
           {/* Sticky Book Button for Mobile */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:hidden z-50">
-            <button className="w-full bg-[#f84464] hover:bg-[#d63752] text-white py-3 rounded-lg font-semibold text-lg transition-colors">
+            <button className="w-full bg-[#f84464] hover:bg-[#d63752] text-white py-3 rounded-lg font-semibold text-lg transition-colors"
+              onClick={() =>handleBookBtn(eventData)}>
               Book Now
             </button>
           </div>
@@ -1142,6 +1152,7 @@ const ViewEventPage = () => {
       </div>
     </div>
   );
+
 };
 
 export default ViewEventPage;

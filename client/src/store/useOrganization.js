@@ -6,8 +6,9 @@ export const useOrganizationStore = create((set) => ({
   // states
   verifyingOrganization: false,
   organization: null,
-
+  creatingEventId: null,
   creatingOrganization: false,
+  creatingInventory: false,
 
   creatingEvent: false,
 
@@ -71,6 +72,8 @@ export const useOrganizationStore = create((set) => ({
         eData
       );
 
+      set({ creatingEventId: res.data._id });
+
       // Set the necessary event deatils to to organization
       //set((state)=>{
       //   state.organization : {
@@ -78,7 +81,7 @@ export const useOrganizationStore = create((set) => ({
 
       //   }
       // })
-      console.log("res from server aftre creating event : ", res.data);
+      console.log("res from server after creating event : ", res.data);
       toast.success("Event created Successfully");
       return res.data.pageId;
     } catch (err) {
@@ -89,6 +92,34 @@ export const useOrganizationStore = create((set) => ({
       }
     } finally {
       set({ creatingEvent: false });
+    }
+  },
+
+  createInventory: async (data) => {
+    try {
+      set({ creatingInventory: true });
+      const iData = {
+        organizationId: data.organizationId,
+        eventId: data.eventId,
+        ticketConfiguration: data.ticketConfiguration,
+        bookingSettings: data.bookingSettings,
+
+      };
+      const res = await axiosInstance.post(
+        "/booking/inventory/create-inventory",
+        iData
+      );
+console.log("res from server after creating inventory : ", res.data);
+      toast.success("Event Inventory created Successfully");
+    } catch (err) {
+      console.log("error in creating inventory : ", err);
+      if (err.response) {
+        toast.error(err.response.data?.message || "Creation Failed");
+      } else {
+        toast.error("Network error — please try again");
+      }
+    } finally {
+      set({ creatingInventory: false });
     }
   },
 }));

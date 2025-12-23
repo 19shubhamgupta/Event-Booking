@@ -3,7 +3,7 @@ const { Kafka } = require("kafkajs");
 const { bookTickets } = require("../controllers/bookController");
 const { cancelReservation } = require("../controllers/reservationController");
 
-class kafkaConsumer {
+class kafkaConsumer { 
   constructor() {
     this.kafka = new Kafka({
       clientId: "event-booking-booking-service",

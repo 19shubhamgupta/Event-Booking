@@ -8,6 +8,9 @@ import SignupPage from "./Pages/SignupPage.jsx";
 import OrganizeRoute from "./lib/OrganizeRoute.jsx";
 import OrganizePage from "./Pages/OrganizePage.jsx";
 import ViewEventPage from "./Pages/ViewEventPage.jsx"
+import CreateInventoryPage from "./Pages/CreateInventoryPage.jsx";
+import PaymentPage from "./Pages/PaymentPage.jsx";
+import TicketDetailsPage from "./Pages/TicketDetailsPage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -17,7 +20,10 @@ const router = createBrowserRouter([
       { path: "/", element: <HomePage /> },
       { path: "/organize", element: <OrganizeRoute /> },
       { path: "/create-draft/:id", element: <OrganizePage /> },
-      {path: "/view-event", element : <ViewEventPage/>}
+      {path: "/view-event", element : <ViewEventPage/>},
+      {path: "/ticket-details/:eventId", element : <TicketDetailsPage/>},
+      {path: "/create-bookings/:id", element : <CreateInventoryPage/>},
+      {path: "/payment/:reservationId", element : <PaymentPage/>}
     ],
   },
   { path: "/login", element: <LoginPage /> },

@@ -1,10 +1,7 @@
-const EventInventory = require("../models/eventInventory");
+const EventInventory = require("../../models/eventInventory");
 const mongoose = require("mongoose");
 
 class EventInventoryService {
-
-
-
   //get inventory by event id
   async getInventoryByEventId(eventId) {
     try {
@@ -226,11 +223,6 @@ class EventInventoryService {
 
     return result;
   }
-
-
-
-  
-
 }
 
 module.exports = new EventInventoryService();

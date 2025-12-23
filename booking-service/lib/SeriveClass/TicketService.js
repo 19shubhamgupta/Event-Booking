@@ -1,4 +1,4 @@
-const ticket = require("../models/ticket");
+const ticket = require("../../models/ticket");
 
 class TicketService {
   //get ticket by id

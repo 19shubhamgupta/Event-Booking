@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const mongoose = require("mongoose");
-const ReservationService = require("./ReservationService");
-const EventInventoryService = require("./EventInventoryService");
+const ReservationService = require("./SeriveClass/ReservationService");
+const EventInventoryService = require("./SeriveClass/EventInventoryService");
 
 let isRunning = false;
 
@@ -78,3 +78,4 @@ cron.schedule("*/1 * * * *", async function () {
   }
 });
 
+ 

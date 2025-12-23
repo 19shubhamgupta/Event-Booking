@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
-const EventInventoryService = require("../lib/EventInventoryService");
-const ReservationService = require("../lib/ReservationService");
-const TicketService = require("../lib/TicketService");
-const BookingService = require("../lib/BookingService");
+const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
+const ReservationService = require("../lib/SeriveClass/ReservationService");
+const TicketService = require("../lib/SeriveClass/TicketService");
+const BookingService = require("../lib/SeriveClass/BookingService");
 
 exports.bookTickets = async (data) => {
   // after sucessfull payment create booking , tickets , update inventory
@@ -94,8 +94,7 @@ exports.bookTickets = async (data) => {
         data.idempotencyKey || `${data.reservationId}-${Date.now()}`,
     };
 
-    const bookingServiceInstance = new BookingService();
-    const booking = await bookingServiceInstance.createBooking(
+    const booking = await BookingService.createBooking(
       bookingData,
       session
     );

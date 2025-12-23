@@ -57,6 +57,34 @@ app.use(
   })
 );
 
+app.use(
+  "/booking",
+  proxy("http://localhost:5005", {
+    proxyErrorHandler: function (err, res, next) {
+      console.error("❌ Booking Service (5005) unreachable:", err.message);
+      res.status(503).json({
+        success: false,
+        message: "Booking service temporarily unavailable",
+      });
+    },
+  })
+);
+
+app.use(
+  "/payments",
+  proxy("http://localhost:5006", {
+    proxyErrorHandler: function (err, res, next) {
+      console.error("❌ Payment Service (5006) unreachable:", err.message);
+      res.status(503).json({
+        success: false,
+        message: "PAYMENT service temporarily unavailable",
+      });
+    },
+  })
+);
+
+
+
 app.listen(5001, () => {
   console.log(`✅ API Gateway listening on port 5001`);
 });

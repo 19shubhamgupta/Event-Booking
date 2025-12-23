@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Reservation = require("../models/reservation");
+const Reservation = require("../../models/reservation");
 
 class ReservationService {
   // Get reservation by ID

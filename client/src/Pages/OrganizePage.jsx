@@ -3,7 +3,8 @@ import ToolBox from "../Components/PageEditor/ToolBox";
 import Canvas from "../Components/PageEditor/Canvas";
 import useEditorStore from "../store/useEditorstore";
 import Inspector from "../Components/PageEditor/Inspector";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { useOrganizationStore } from "../store/useOrganization";
 
 const OrganizePage = () => {
   const {
@@ -15,7 +16,12 @@ const OrganizePage = () => {
     isLoading,
   } = useEditorStore();
 
+  const {creatingEventId} = useOrganizationStore()
+  
+
   const { id } = useParams();
+
+  const navigate = useNavigate()
   
   useEffect(() => {
     if (id) {
@@ -35,6 +41,7 @@ const OrganizePage = () => {
   //handle Publish button
   function handlePublish() {
     console.log("publish called : ", currentPage);
+    navigate(`/create-bookings/${creatingEventId}`)
   }
 
   const ControlBtns = () => {

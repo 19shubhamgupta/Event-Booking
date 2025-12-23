@@ -1,4 +1,4 @@
-const booking = require("../models/booking");
+const booking = require("../../models/booking");
 
 class BookingService {
   // get booking by Id
@@ -53,3 +53,5 @@ class BookingService {
     return savedBooking;
   }
 }
+
+module.exports = new BookingService();

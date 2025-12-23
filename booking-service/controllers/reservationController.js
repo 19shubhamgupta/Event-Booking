@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const EventInventoryService = require("../lib/EventInventoryService");
-const ReservationService = require("../lib/ReservationService");
+const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
+const ReservationService = require("../lib/SeriveClass/ReservationService");
 
 exports.postReserveTicket = async (req, res) => {
   const session = await mongoose.startSession();
@@ -103,23 +103,41 @@ exports.cancelReservation = async (data) => {
       "cancelled",
       session
     );
-    
+
     await session.commitTransaction();
     console.log(`✅ Reservation ${resv._id} cancelled successfully`);
-    
+
     return {
       success: true,
       message: "Reservation cancelled successfully",
     };
   } catch (error) {
     console.error("Error cancelling reservation:", error);
-    if(session){
+    if (session) {
       await session.abortTransaction();
     }
     throw error;
   } finally {
-    if(session){
+    if (session) {
       session.endSession();
     }
+  }
+};
+
+exports.cancelReservationByBack = async (req, res) => {
+  try {
+    const { reservationId } = req.body;
+    await cancelReservation({ reservationId });
+
+    return res.status(200).json({
+      success: true,
+      message: "Reservation cancelled successfully",
+    });
+  } catch (error) {
+    console.error("Error cancelling reservation via backend:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to cancel reservation",
+    });
   }
 };
