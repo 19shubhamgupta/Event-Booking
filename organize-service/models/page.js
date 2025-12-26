@@ -71,4 +71,6 @@ pageSchema.statics.findBySlug = function (slug) {
   return this.findOne({ slug, published: true });
 };
 
+pageSchema.index({ organizerId: 1 });
+
 module.exports = mongoose.model("Page", pageSchema);

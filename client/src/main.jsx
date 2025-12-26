@@ -6,11 +6,14 @@ import HomePage from "./Pages/HomePage.jsx";
 import LoginPage from "./Pages/LoginPage.jsx";
 import SignupPage from "./Pages/SignupPage.jsx";
 import OrganizeRoute from "./lib/OrganizeRoute.jsx";
-import OrganizePage from "./Pages/OrganizePage.jsx";
-import ViewEventPage from "./Pages/ViewEventPage.jsx"
-import CreateInventoryPage from "./Pages/CreateInventoryPage.jsx";
+import OrganizePage from "./Components/DashBoardComponents/OrganizePage.jsx";
+import ViewEventPage from "./Pages/ViewEventPage.jsx";
+import CreateInventoryPage from "./Components/DashBoardComponents/CreateInventoryPage.jsx";
 import PaymentPage from "./Pages/PaymentPage.jsx";
 import TicketDetailsPage from "./Pages/TicketDetailsPage.jsx";
+import Dashboard from "./Pages/Dashboard.jsx";
+import Manage from "./Components/DashBoardComponents/Manage.jsx";
+import CreateEventPage from "./Components/DashBoardComponents/CreateEventPage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -19,11 +22,23 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/organize", element: <OrganizeRoute /> },
-      { path: "/create-draft/:id", element: <OrganizePage /> },
-      {path: "/view-event", element : <ViewEventPage/>},
-      {path: "/ticket-details/:eventId", element : <TicketDetailsPage/>},
-      {path: "/create-bookings/:id", element : <CreateInventoryPage/>},
-      {path: "/payment/:reservationId", element : <PaymentPage/>}
+      { path: "/view-event", element: <ViewEventPage /> },
+      { path: "/ticket-details/:eventId", element: <TicketDetailsPage /> },
+      { path: "/payment/:reservationId", element: <PaymentPage /> },
+      {
+        path: "/dashboard",
+        element: <Dashboard />,
+        children: [
+          { index: true, element: <Manage /> },
+          { path: "drafts", element: <OrganizePage /> },
+          { path: "drafts/:id", element: <OrganizePage /> },
+          { path: "create-bookings/:id", element: <CreateInventoryPage /> },
+          {
+            path: "create-event",
+            element: <CreateEventPage />, ///create-bookings/${creatingEventId}
+          },
+        ],
+      },
     ],
   },
   { path: "/login", element: <LoginPage /> },

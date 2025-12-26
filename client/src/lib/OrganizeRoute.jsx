@@ -1,5 +1,5 @@
 import { useOrganizationStore } from "../store/useOrganization.js";
-import CreateEventPage from "../Pages/CreateEventPage.jsx";
+import CreateEventPage from "../Components/DashBoardComponents/CreateEventPage.jsx";
 import CreateOrganizationPage from "../Pages/CreateOrganizationPage.jsx";
 
 const OrganizeRoute = () => {
@@ -7,4 +7,4 @@ const OrganizeRoute = () => {
   return organization ? <CreateEventPage /> : <CreateOrganizationPage />;
 };
 
-export default OrganizeRoute
+export default OrganizeRoute;

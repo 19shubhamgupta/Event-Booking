@@ -51,6 +51,13 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
+    eventStatus: {
+      type: String,
+      enum: ["draft","scheduled", "booking_open","sold_out", "booking_closed", "cancelled"],
+      default: "draft",
+      index: true,
+    },
+
     // Location information
     city: {
       type: String,
@@ -123,15 +130,9 @@ const eventSchema = new mongoose.Schema(
     // Images
     coverImage: {
       type: String,
-      required: true,
     },
 
-    // Publication status
-    published: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
+    
   },
   {
     timestamps: true,
@@ -139,7 +140,7 @@ const eventSchema = new mongoose.Schema(
 );
 
 // Compound indexes for common queries
-eventSchema.index({ published: 1, startDate: 1 }); // Upcoming published events
+eventSchema.index({ eventStatus: 1, startDate: 1 }); // Upcoming published events
 eventSchema.index({ eventCategory: 1, city: 1, startDate: 1 }); // Category + location + date
 eventSchema.index({ state: 1, startDate: 1 }); // State-based queries
 eventSchema.index({ city: 1, eventCategory: 1 }); // Location + category

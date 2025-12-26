@@ -5,6 +5,7 @@ const {
   createEvent,
   putPublishEvent,
   getEvents,
+  getAllDrafts
 } = require("../controllers/organizationController");
 const { verifyToken } = require("../middlewares/verifyToken");
 
@@ -19,5 +20,6 @@ organizationrouter.post(
 );
 organizationrouter.post("/create-event", verifyToken, createEvent);
 organizationrouter.put("/publish-event/:id", verifyToken, putPublishEvent);
+organizationrouter.get("/get-drafts/:organizationId" , verifyToken, getAllDrafts);
 
 module.exports = organizationrouter;

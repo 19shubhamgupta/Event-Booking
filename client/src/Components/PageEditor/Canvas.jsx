@@ -6,9 +6,53 @@ import {
 } from "@dnd-kit/sortable";
 import useEditorStore from "../../store/useEditorstore";
 import SortableBlock from "./SortableBlock";
+import { useState, useRef, useEffect } from "react";
 
 const Canvas = ({ ControlBtns }) => {
-  const { currentPage, deselectBlock, setCurrentPage } = useEditorStore();
+  const { currentPage, deselectBlock, setCurrentPage, setPageTitle } =
+    useEditorStore();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
+  const titleInputRef = useRef(null);
+
+  // Sync titleValue when currentPage changes
+  useEffect(() => {
+    if (currentPage?.title) {
+      setTitleValue(currentPage.title);
+    }
+  }, [currentPage?.title]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleTitleClick = () => {
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
+    if (titleValue.trim() !== "") {
+      setPageTitle(titleValue.trim());
+    } else {
+      setTitleValue(currentPage?.title || "Untitled Page");
+    }
+  };
+
+  const handleTitleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleTitleBlur();
+    }
+    if (e.key === "Escape") {
+      setTitleValue(currentPage?.title || "Untitled Page");
+      setIsEditingTitle(false);
+    }
+  };
 
   if (!currentPage) {
     return (
@@ -44,17 +88,34 @@ const Canvas = ({ ControlBtns }) => {
       className="flex-1 bg-gray-50 overflow-y-auto p-8 "
       onClick={() => deselectBlock()}
       style={{
-    overflow: "auto",
-    scrollbarWidth: "none", // Firefox
-    msOverflowStyle: "none", // IE/Edge
-  }}
+        overflow: "auto",
+        scrollbarWidth: "none", // Firefox
+        msOverflowStyle: "none", // IE/Edge
+      }}
     >
       <div className="max-w-4xl mx-auto bg-white shadow-lg min-h-screen">
-        {/* Page Title */}
-        <div className="border-b border-zinc-400 p-2 bg-gray-50 flex justify-between">
-          <h1 className="text-3xl font-bold text-zinc-800">
-            {currentPage.title}
-          </h1>
+        {/* Page Title - Editable */}
+        <div className="border-b border-zinc-400 p-2 bg-gray-50 flex justify-between items-center">
+          {isEditingTitle ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              onBlur={handleTitleBlur}
+              onKeyDown={handleTitleKeyDown}
+              className="text-3xl font-bold text-zinc-800 bg-white border-2 border-[#6d27da] rounded px-2 py-1 outline-none w-full max-w-md"
+              placeholder="Enter page title..."
+            />
+          ) : (
+            <h1
+              className="text-3xl font-bold text-zinc-800 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+              onClick={handleTitleClick}
+              title="Click to edit title"
+            >
+              {currentPage.title || "Untitled Page"}
+            </h1>
+          )}
 
           <ControlBtns />
         </div>

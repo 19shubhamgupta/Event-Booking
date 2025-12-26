@@ -3,11 +3,8 @@ const dotenv = require("dotenv");
 const ConnectDB = require("./lib/db");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const reservationRoter = require("./routes/reservationRoter");
-const inventoryRouter = require("./routes/inventoryRouter");
 const kafkaConsumer = require("./lib/kafkaconsumer");
-
-require("./lib/expireReservationCleanUp.cron")
+const inventoryRouter = require("./routes/inventoryRouter")
 
 const app = express();
 
@@ -25,17 +22,16 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/reserve", reservationRoter);
-app.use("/inventory", inventoryRouter);
+app.use("/manage", inventoryRouter);
 
 async function startServer() {
   try {
     await ConnectDB();
     await kafkaConsumer.connect(); // Start listening to events
 
-    const PORT = process.env.PORT || 5005;
+    const PORT = process.env.PORT || 5007;
     app.listen(PORT, () => {
-      console.log(`Booking Service running on port ${PORT}`);
+      console.log(`Dashboard Service running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

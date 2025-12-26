@@ -1,0 +1,155 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Open All Service Terminals",
+      "dependsOn": [
+        "Docker Terminal",
+        "API Gateway Terminal",
+        "Booking Service Terminal",
+        "Dashboard Service Terminal",
+        "Event Discovery Terminal",
+        "Organize Service Terminal",
+        "Payment Service Terminal",
+        "User Service Terminal",
+        "Client Terminal"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker Terminal",
+      "type": "shell",
+      "command": "docker-compose up -d",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "API Gateway Terminal",
+      "type": "shell",
+      "command": "cd api-gateway; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Booking Service Terminal",
+      "type": "shell",
+      "command": "cd booking-service; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dashboard Service Terminal",
+      "type": "shell",
+      "command": "cd dashboard-service; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Event Discovery Terminal",
+      "type": "shell",
+      "command": "cd event-discovery; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Organize Service Terminal",
+      "type": "shell",
+      "command": "cd organize-service; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Payment Service Terminal",
+      "type": "shell",
+      "command": "cd payment-service; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "User Service Terminal",
+      "type": "shell",
+      "command": "cd user-service; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Client Terminal",
+      "type": "shell",
+      "command": "cd client; npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

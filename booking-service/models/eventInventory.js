@@ -98,9 +98,13 @@ const eventInventorySchema = new mongoose.Schema(
       },
       bookingOpenDate: {
         type: Date,
+        required: true,
         default: Date.now,
       },
-      bookingCloseDate: Date,
+      bookingCloseDate: {
+        type: Date,
+        required: true,
+      },
     },
   },
   {

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
-import { useOrganizationStore } from "../store/useOrganization";
+import { useOrganizationStore } from "../../store/useOrganization";
 
 const CreateInventoryPage = () => {
   const { id: eventId } = useParams();
@@ -85,7 +85,7 @@ const CreateInventoryPage = () => {
   // Handle form submission
   const onSubmit = async () => {
     const values = getValues();
-console.log("org while summiting : ",organization)
+    console.log("org while summiting : ", organization);
     const inventoryData = {
       organizationId: organization._id,
       eventId: eventId,

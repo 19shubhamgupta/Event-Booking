@@ -1,5 +1,5 @@
 const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
-
+const kafkaConsumer = require("../lib/kafkaconsumer");
 exports.postCreateInventory = async (req, res) => {
   try {
     const { organizationId, eventId, ticketConfiguration, bookingSettings } =
@@ -151,6 +151,19 @@ exports.postCreateInventory = async (req, res) => {
       eventId,
       ticketConfiguration,
       bookingSettings,
+    });
+
+    // Publish inventory.created event to Kafka
+    await kafkaConsumer.publish("inventory.created", {
+      eventId: inventory.eventId,
+      organizationId: inventory.organizationId,
+      ticketTypes: inventory.ticketTypes,
+      totalCapacity: inventory.totalCapacity,
+      totalAvailable: inventory.totalAvailable,
+      totalReserved: inventory.totalReserved,
+      totalSold: inventory.totalSold,
+      isSoldOut: inventory.isSoldOut,
+      bookingSettings: inventory.bookingSettings,
     });
 
     return res.status(201).json({

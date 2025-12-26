@@ -1,4 +1,5 @@
 const page = require("../models/page.js");
+const Organization = require("../models/organizer.js");
 
 const getpage = async (req, res) => {
   try {
@@ -53,8 +54,13 @@ const createPage = async (req, res) => {
     const page = await Page.create({
       title,
       slug: uniqueSlug,
-      authorId: req.user._id,
+      authorId: req.user.organizationId,
       blocks: blocks || [],
+    });
+
+    // Add page to organization's drafts
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      $addToSet: { drafts: page._id },
     });
 
     res.status(201).json({

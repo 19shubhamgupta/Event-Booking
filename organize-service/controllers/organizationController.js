@@ -102,7 +102,7 @@ exports.createEvent = async (req, res) => {
     }
 
     // Create event with all data fields
-    const newEvent = await event.create({
+    const currevent = await event.create({
       title: eventData.title,
       shortDescription: eventData.shortDescription,
       eventCategory: eventData.eventCategory,
@@ -121,19 +121,47 @@ exports.createEvent = async (req, res) => {
       page: pageId, // Reference to page (new or existing)
     });
 
-    if (!newEvent)
+    if (!currevent)
       return res
         .status(400)
         .json({ message: "Error creating event", error: error.message });
 
     // Add event to organization's events array
     await organizer.findByIdAndUpdate(req.user.organizationId, {
-      $push: { events: newEvent._id },
+      $push: { events: currevent._id },
+    });
+
+    // Fetch the page to get its details for Kafka
+    const eventPage = await page.findById(pageId);
+
+    kafkaProducer.publish("event.created", {
+      eventId: currevent._id.toString(),
+      organizationId: req.user.organizationId,
+      title: currevent.title,
+      shortDescription: currevent.shortDescription,
+      startDate: currevent.startDate,
+      endDate: currevent.endDate,
+      startTime: currevent.startTime,
+      endTime: currevent.endTime,
+      city: currevent.city,
+      state: currevent.state,
+      country: currevent.country,
+      locationCoordinates: {
+        latitude: currevent.locationCoordinates.latitude,
+        longitude: currevent.locationCoordinates.longitude,
+      },
+      eventCategory: currevent.eventCategory,
+      page: {
+        pageId: eventPage._id.toString(),
+        slug: eventPage.slug,
+      },
+      published: false,
+      coverImage: currevent.coverImage,
     });
 
     return res.status(201).json({
       message: "Event created successfully",
-      event: newEvent,
+      event: currevent,
       pageId,
     });
   } catch (error) {
@@ -218,6 +246,38 @@ exports.getEvents = async (req, res) => {
     return res.status(200).json(organization.events || []);
   } catch (error) {
     console.log("Error fetching events:", error);
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
+exports.getAllDrafts = async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+    if (!organizationId) {
+      return res.status(403).json({ message: "No Organization Found" });
+    }
+    if (req.user.organizationId.toString() !== organizationId) {
+      return res.status(403).json({ message: "Not Authorized" });
+    }
+
+    const allPages = await page.find({ authorId: organizationId });
+
+    if (!allPages) {
+      return res.status(200).json({
+        success: false,
+        message: "No Drafts Found",
+      });
+    }
+
+    return res.status(200).json({
+      success: false,
+      message: "No Drafts Found",
+      drafts: allPages,
+    });
+  } catch (error) {
+    console.log("Error fetching drafts:", error);
     return res
       .status(500)
       .json({ message: "Server Error", error: error.message });

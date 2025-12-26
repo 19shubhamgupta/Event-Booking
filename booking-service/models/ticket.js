@@ -14,6 +14,7 @@ const ticketSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  
   ticketType: {
     type: String,
     required: true

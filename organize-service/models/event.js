@@ -26,6 +26,12 @@ const eventSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    eventStatus: {
+      type: String,
+      enum: ["draft","scheduled", "booking_open","sold_out", "booking_closed", "cancelled"],
+      default: "draft",
+      index: true,
+    },
     page: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Page",
@@ -61,14 +67,9 @@ const eventSchema = new mongoose.Schema(
       },
     },
     
-    published: {
-      type: Boolean,
-      default: false,
-    },
 
     coverImage : {
       type : String,
-      required : true
     },
   },
   {

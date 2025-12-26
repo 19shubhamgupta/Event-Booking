@@ -57,6 +57,8 @@ app.use(
   })
 );
 
+
+//bookinng 
 app.use(
   "/booking",
   proxy("http://localhost:5005", {
@@ -70,6 +72,7 @@ app.use(
   })
 );
 
+//payments
 app.use(
   "/payments",
   proxy("http://localhost:5006", {
@@ -83,6 +86,20 @@ app.use(
   })
 );
 
+
+//dashboard
+app.use(
+  "/dashboard",
+  proxy("http://localhost:5007", {
+    proxyErrorHandler: function (err, res, next) {
+      console.error("❌ dashboard Service (5007) unreachable:", err.message);
+      res.status(503).json({
+        success: false,
+        message: "dashboard service temporarily unavailable",
+      });
+    },
+  })
+);
 
 
 app.listen(5001, () => {

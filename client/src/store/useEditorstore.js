@@ -2,12 +2,52 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
-const useEditorStore = create((set) => ({
+const useEditorStore = create((set, get) => ({
   currentPage: null,
   selectedBlockId: null,
   isLoading: false,
   isSaving: false,
   error: null,
+
+  // Initialize a new empty page (for create mode)
+  initNewPage: () => {
+    set({
+      currentPage: {
+        title: "Untitled Page",
+        blocks: [],
+      },
+      selectedBlockId: null,
+      isLoading: false,
+      error: null,
+    });
+  },
+
+  // Create a new page in the database
+  createPage: async (pageData) => {
+    try {
+      set({ isSaving: true });
+      const res = await axiosInstance.post("/organize/page/create-page", {
+        title: pageData.title || "Untitled Page",
+        blocks: pageData.blocks || [],
+      });
+
+      if (res.data.success) {
+        set({ currentPage: res.data.page });
+        toast.success("Page created successfully!");
+        return res.data.page;
+      }
+    } catch (err) {
+      console.error("Create page error:", err);
+      if (err.response) {
+        toast.error(err.response.data?.message || "Failed to create page");
+      } else {
+        toast.error("Network error — please try again");
+      }
+      return null;
+    } finally {
+      set({ isSaving: false });
+    }
+  },
 
   setCurrentPage: (blocks) =>
     set((state) => ({
@@ -189,10 +229,13 @@ const useEditorStore = create((set) => ({
     try {
       set({ isSaving: true });
 
-      const res = await axiosInstance.put(`/organize/page/update-page/${currPage._id}`, {
-        title: currPage.title,
-        blocks: currPage.blocks || [],
-      });
+      const res = await axiosInstance.put(
+        `/organize/page/update-page/${currPage._id}`,
+        {
+          title: currPage.title,
+          blocks: currPage.blocks || [],
+        }
+      );
       console.log("save to db response : ", res.data);
       toast.success("Saved");
     } catch (err) {

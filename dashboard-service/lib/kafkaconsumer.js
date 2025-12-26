@@ -1,17 +1,18 @@
 const { Kafka } = require("kafkajs");
-
-const { bookTickets } = require("../controllers/bookController");
-const { cancelReservation } = require("../controllers/reservationController");
+const {
+  createInventorywhenEventIsCreated,
+  updateInventoryWithTicketConfiguration,
+} = require("../controllers/inventoryControllers");
 
 class kafkaConsumer {
   constructor() {
     this.kafka = new Kafka({
-      clientId: "event-booking-booking-service",
+      clientId: "event-booking-dasshboard-service",
       brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
     });
 
     this.consumer = this.kafka.consumer({
-      groupId: "booking-service-group",
+      groupId: "dashboard-service-group",
       sessionTimeout: 60000, // 60 seconds (increased from 30s)
       heartbeatInterval: 3000, // 3 seconds
       rebalanceTimeout: 60000, // 60 seconds
@@ -22,35 +23,24 @@ class kafkaConsumer {
       },
     });
 
-    this.producer = this.kafka.producer({
-      allowAutoTopicCreation: true,
-      transactionTimeout: 60000,
-      idempotent: true,
-      maxInFlightRequests: 5,
-      retry: {
-        retries: 5,
-        initialRetryTime: 300,
-        maxRetryTime: 30000,
-      },
-    });
-
     this.isConnected = false;
-    this.isProducerConnected = false;
   }
 
   async connect() {
     if (this.isConnected) return;
     try {
       await this.consumer.connect();
-      await this.producer.connect();
       this.isConnected = true;
-      this.isProducerConnected = true;
       console.log("✅ Kafka Consumer connected");
-      console.log("✅ Kafka Producer connected");
 
       // subscribe to topics
       await this.consumer.subscribe({
-        topics: ["payment.complete"],
+        topics: [
+          "event.created",
+          "event.updated",
+          "inventory.created",
+          "inventory.updated",
+        ],
         fromBeginning: true,
       });
 
@@ -79,67 +69,60 @@ class kafkaConsumer {
 
   async handleEvent(topic, event) {
     switch (topic) {
-      case "payment.complete":
-        await this.handlePaymentComplete(event.data);
+      case "event.created":
+        await this.handleEventCreated(event.data);
+        break;
+      case "event.updated":
+        await this.handleEventUpdated(event.data);
+        break;
+      case "inventory.created":
+        await this.handleInventoryCreated(event.data);
+        break;
+      case "inventory.updated":
+        await this.handleInventoryUpdated(event.data);
         break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
   }
 
-  async handlePaymentComplete(data) {
+  //handling events
+  async handleEventCreated(data) {
     try {
-      if (data.success === true) {
-        await bookTickets(data);
-        console.log("✅ Booking completed successfully");
-      }
-      if (data.success === false) {
-        await cancelReservation(data);
-        console.log("✅ Reservation cancelled successfully");
-      }
+      console.log("Processing event.created:", data);
+      await createInventorywhenEventIsCreated(data);
+      console.log("✅ Inventory created for event:", data.eventId);
     } catch (error) {
-      console.error(
-        "❌ Error processing payment complete in kafkaconsumer:",
-        error
+      console.error("❌ Error handling event.created:", error);
+      // Don't throw to allow Kafka to continue processing other messages
+    }
+  }
+  async handleEventUpdated(data) {
+    console.log("Processing event.updated:", data);
+  }
+  async handleInventoryCreated(data) {
+    try {
+      console.log("Processing inventory.created:", data);
+      await updateInventoryWithTicketConfiguration(data);
+      console.log(
+        "✅ Inventory updated with ticket configuration:",
+        data.eventId
       );
-      throw error; // Re-throw to trigger Kafka retry mechanism
-    }
-  }
-
-  // Producer method to publish events
-  async publish(topic, event) {
-    try {
-      await this.producer.send({
-        topic,
-        messages: [
-          {
-            key: event.aggregateId || event.eventId || "default-key",
-            value: JSON.stringify({
-              type: topic,
-              data: event,
-            }),
-          },
-        ],
-      });
-      console.log(`📤 Event published: ${topic}`, event);
     } catch (error) {
-      console.error(`❌ Failed to publish event: ${topic}`, error);
-      throw error;
+      console.error("❌ Error handling inventory.created:", error);
     }
   }
+  async handleInventoryUpdated(data) {
+    console.log("Processing inventory.updated:", data);
+  }
 
+  //disconnect consumer
   async disconnect() {
     if (!this.isConnected) return;
 
     await this.consumer.disconnect();
     this.isConnected = false;
     console.log("Kafka Consumer disconnected");
-
-    if (this.isProducerConnected) {
-      await this.producer.disconnect();
-      this.isProducerConnected = false;
-      console.log("Kafka Producer disconnected");
-    }
   }
 }
 

@@ -2,12 +2,13 @@ import React, { useState, useCallback } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useOrganizationStore } from "../store/useOrganization";
+import { useOrganizationStore } from "../../store/useOrganization";
 
 const CreateEventPage = () => {
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
-  const { organization, createEventOndb, isCreating } = useOrganizationStore();
+  const { organization, createEventOndb, isCreating, allDrafts } =
+    useOrganizationStore();
   const [customCategory, setCustomCategory] = useState("");
   const [newpageName, setNewpageName] = useState(
     "tech-innovation-conference-2025"
@@ -84,11 +85,12 @@ const CreateEventPage = () => {
     // Update step to show loading UI
     setStep(3);
 
-    // TODO: Add your API call here to create the event
     console.log("Creating event with data:", eventData);
     const res = await createEventOndb(eventData);
 
-    if (res && !isCreating) navigate(`/create-draft/${res}`);
+    if (res && !isCreating) {
+      navigate(`/dashboard/drafts/${res}`);
+    }
     if (!res) setStep(1);
   };
 
@@ -164,7 +166,7 @@ const CreateEventPage = () => {
                 render={({ field }) => (
                   <textarea
                     {...field}
-                    className="w-full p-2 border rounded-md h-32"
+                    className="w-full p-2 border rounded-md h-20"
                     placeholder="Enter event description"
                   />
                 )}
@@ -375,7 +377,7 @@ const CreateEventPage = () => {
                       }}
                     >
                       <option value="">Select page Page</option>
-                      {organization?.pages?.map(({ _id, title }) => (
+                      {allDrafts?.map(({ _id, title }) => (
                         <option key={_id} value={_id}>
                           {title}
                         </option>
@@ -469,7 +471,7 @@ const CreateEventPage = () => {
       className={`${
         step === 3
           ? " min-h-[80vh] flex items-center justify-center w-full"
-          : "bg-white rounded-lg shadow-md p-6 mt-20 max-w-2xl mx-auto border-2 border-blue-950"
+          : "bg-white rounded-lg shadow-md p-6  max-w-2xl mx-auto border-2 border-blue-950"
       }`}
     >
       {/* Progress indicator */}
