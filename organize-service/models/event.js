@@ -66,10 +66,18 @@ const eventSchema = new mongoose.Schema(
         required: true,
       },
     },
-    
-
     coverImage : {
       type : String,
+    },
+     // Booking dates
+    bookingOpenDate: {
+      type: Date,
+      index: true,
+    },
+
+    bookingCloseDate: {
+      type: Date,
+      index: true,
     },
   },
   {

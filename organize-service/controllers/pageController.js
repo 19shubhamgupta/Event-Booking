@@ -5,11 +5,6 @@ const getpage = async (req, res) => {
   try {
     const { id } = req.params;
     const currPage = await page.findById(id);
-    console.log(currPage.authorId, req.user.organizationId);
-
-    if (currPage.authorId.toString() !== req.user.organizationId.toString())
-      return res.status(403).json({ message: "Unauthorized Access" });
-
     return res.status(200).json(currPage);
   } catch (error) {
     console.log("Error fetching page:", error);

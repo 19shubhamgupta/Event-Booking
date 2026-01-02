@@ -19,9 +19,11 @@ const getPublicKey = () => {
 
 const verifyToken = (req, res, next) => {
   try {
-    // Get token from cookie or Authorization header
+    // Get token from cookie, Authorization header, or query parameter (for SSE)
     const token =
-      req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
+      req.cookies.token ||
+      req.headers.authorization?.replace("Bearer ", "") ||
+      req.query.token;
 
     if (!token) {
       return res.status(401).json({

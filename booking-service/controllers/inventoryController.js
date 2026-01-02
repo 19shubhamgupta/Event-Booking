@@ -1,5 +1,6 @@
 const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
 const kafkaConsumer = require("../lib/kafkaconsumer");
+
 exports.postCreateInventory = async (req, res) => {
   try {
     const { organizationId, eventId, ticketConfiguration, bookingSettings } =
@@ -245,6 +246,120 @@ exports.getInventoryByEventId = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch inventory",
+    });
+  }
+};
+
+exports.getBookingDatesByEventId = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    if (!eventId || !eventId.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required",
+      });
+    }
+
+    const inventory = await EventInventoryService.getInventoryByEventId(
+      eventId
+    );
+
+    if (!inventory) {
+      return res.status(404).json({
+        success: false,
+        message: "Inventory not found for this event",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        bookingOpenDate: inventory.bookingSettings?.bookingOpenDate,
+        bookingCloseDate: inventory.bookingSettings?.bookingCloseDate,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching booking dates:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch booking dates",
+      error: error.message,
+    });
+  }
+};
+
+exports.updateInventory = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { ticketConfiguration, bookingSettings } = req.body;
+
+    if (!eventId || !eventId.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required",
+      });
+    }
+
+    // Validate ticketConfiguration
+    if (!ticketConfiguration || !Array.isArray(ticketConfiguration)) {
+      return res.status(400).json({
+        success: false,
+        message: "Ticket configuration must be an array",
+      });
+    }
+
+    if (ticketConfiguration.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one ticket type is required",
+      });
+    }
+
+    // Get existing inventory
+    const existingInventory = await EventInventoryService.getInventoryByEventId(
+      eventId
+    );
+
+    if (!existingInventory) {
+      return res.status(404).json({
+        success: false,
+        message: "Inventory not found for this event",
+      });
+    }
+
+    // Update inventory using service
+    const updatedInventory = await EventInventoryService.updateInventory(
+      eventId,
+      ticketConfiguration,
+      bookingSettings
+    );
+
+    // Publish inventory.updated event to Kafka
+    await kafkaConsumer.publish("inventory.updated", {
+      eventId: updatedInventory.eventId,
+      organizationId: updatedInventory.organizationId,
+      ticketTypes: updatedInventory.ticketTypes,
+      totalCapacity: updatedInventory.totalCapacity,
+      totalAvailable: updatedInventory.totalAvailable,
+      bookingSettings: updatedInventory.bookingSettings,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Inventory updated successfully",
+      data: {
+        inventoryId: updatedInventory._id,
+        eventId: updatedInventory.eventId,
+        totalCapacity: updatedInventory.totalCapacity,
+        ticketTypesCount: updatedInventory.ticketTypes.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating inventory:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update inventory",
     });
   }
 };

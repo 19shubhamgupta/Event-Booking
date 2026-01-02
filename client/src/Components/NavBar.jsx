@@ -18,7 +18,7 @@ const NavBar = () => {
   const {verifyOrganization  , organization } = useOrganizationStore()
 
   useEffect(()=>{
-    verifyOrganization()
+    verifyOrganization().then(()=>console.log("org in navbar : ", organization))
   },[])
 
   const categoryLinks = [

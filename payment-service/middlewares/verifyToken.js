@@ -23,7 +23,6 @@ const verifyToken = (req, res, next) => {
     const token =
       req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
 
-      console.log(" token in user service : ", token)
     if (!token) {
       return res.status(401).json({
         success: false,

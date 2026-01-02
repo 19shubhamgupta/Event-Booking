@@ -24,6 +24,7 @@
     "kafkajs": "^2.2.4",
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
     "socket.io": "^4.8.1",
     "streamifier": "^0.1.1"
   },

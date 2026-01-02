@@ -1,28 +1,44 @@
 const event = require("../models/event");
 
-exports.getUpcoming = async (req , res) => {
+exports.getUpcoming = async (req, res) => {
   try {
     let page = parseInt(req.query.page) || 1;
-    let limit =10;
+    let limit = 10;
     if (page <= 0) page = 1;
     if (limit > 10 || limit <= 0) limit = 10;
 
-    let skip = (page - 1) * limit;  // Fixed: multiply by limit
+    let skip = (page - 1) * limit; // Fixed: multiply by limit
     const upEvents = await event
       .find({
-        published: true,
-        startDate: { $gte: new Date() },
+        eventStatus: {
+          $in: [
+            
+            "scheduled",
+            "booking_open",
+            "booking_closed",
+            "sold_out",
+          ],
+        },
+        bookingCloseDate: { $gte: new Date() },
       })
       .sort({ startDate: 1 })
       .skip(skip)
       .limit(limit);
-    
+
     // Get total count for pagination metadata
     const totalCount = await event.countDocuments({
-      published: true,
-      startDate: { $gte: new Date() },
+      eventStatus: {
+        $in: [
+          
+          "scheduled",
+          "booking_open",
+          "booking_closed",
+          "sold_out",
+        ],
+      },
+      bookingCloseDate: { $gte: new Date() },
     });
-    
+
     return res.status(200).json({
       success: true,
       events: upEvents,
@@ -36,11 +52,13 @@ exports.getUpcoming = async (req , res) => {
       },
     });
   } catch (error) {
-    console.log("error in discovering service while geting upEvents : ", error.message);
-    return res.status(500).json({message : "Internal server error"})
+    console.log(
+      "error in discovering service while geting upEvents : ",
+      error.message
+    );
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 exports.getEventBycategory = async (req, res) => {
   try {
@@ -54,8 +72,16 @@ exports.getEventBycategory = async (req, res) => {
       const topCategories = await event.aggregate([
         {
           $match: {
-            published: true,
-            startDate: { $gte: new Date() },
+            eventStatus: {
+              $in: [
+                
+                "scheduled",
+                "booking_open",
+                "booking_closed",
+                "sold_out",
+              ],
+            },
+            bookingCloseDate: { $gte: new Date() },
           },
         },
         {
@@ -90,8 +116,16 @@ exports.getEventBycategory = async (req, res) => {
           const events = await event
             .find({
               eventCategory: categoryName,
-              published: true,
-              startDate: { $gte: new Date() },
+              eventStatus: {
+                $in: [
+                  
+                  "scheduled",
+                  "booking_open",
+                  "booking_closed",
+                  "sold_out",
+                ],
+              },
+              bookingCloseDate: { $gte: new Date() },
             })
             .sort({ startDate: 1 })
             .limit(10);
@@ -112,12 +146,20 @@ exports.getEventBycategory = async (req, res) => {
     } else {
       // Get events for specific category with pagination
       const skip = (page - 1) * limit;
-      
+
       const categoryEvents = await event
         .find({
           eventCategory: category,
-          published: true,
-          startDate: { $gte: new Date() },
+          eventStatus: {
+            $in: [
+              
+              "scheduled",
+              "booking_open",
+              "booking_closed",
+              "sold_out",
+            ],
+          },
+          bookingCloseDate: { $gte: new Date() },
         })
         .sort({ startDate: 1 })
         .skip(skip)
@@ -126,8 +168,16 @@ exports.getEventBycategory = async (req, res) => {
       // Get total count for pagination
       const totalCount = await event.countDocuments({
         eventCategory: category,
-        published: true,
-        startDate: { $gte: new Date() },
+        eventStatus: {
+          $in: [
+            
+            "scheduled",
+            "booking_open",
+            "booking_closed",
+            "sold_out",
+          ],
+        },
+        bookingCloseDate: { $gte: new Date() },
       });
 
       return res.status(200).json({

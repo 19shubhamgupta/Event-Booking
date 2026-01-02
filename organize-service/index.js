@@ -5,7 +5,13 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const organizationrouter = require("./routes/organizationroter");
 const pageRouter = require("./routes/pageRouter");
+const kafkaConsumer = require("./lib/kafkaConsumer");
 const kafkaProducer = require("./lib/kafkaProducer");
+const eventStatusScheduler = require("./lib/status.update.cron");
+const movieRouter = require("./routes/movieRouter");
+const theaterRouter = require("./routes/theaterRouter");
+const screenRouter = require("./routes/screenRouter");
+const showRouter = require("./routes/showRouter");
 
 const app = express();
 
@@ -25,11 +31,17 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/organization", organizationrouter);
 app.use("/page", pageRouter);
+app.use("/movie", movieRouter);
+app.use("/theater", theaterRouter);
+app.use("/screen", screenRouter);
+app.use("/show", showRouter);
 
 async function startServer() {
   try {
     await ConnectDB();
     await kafkaProducer.connect();
+    await kafkaConsumer.connect();
+    eventStatusScheduler.init();
 
     const PORT = process.env.PORT || 5001;
     app.listen(PORT, () => {
@@ -44,7 +56,10 @@ async function startServer() {
 // Graceful shutdown
 process.on("SIGINT", async () => {
   console.log("Shutting down gracefully...");
+  eventStatusScheduler.stopAll();
   await kafkaProducer.disconnect();
+  await kafkaConsumer.disconnect();
+  await mongoose.connection.close();
   process.exit(0);
 });
 

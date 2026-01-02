@@ -142,6 +142,110 @@ exports.updateInventoryWithTicketConfiguration = async (inventoryData) => {
   }
 };
 
+exports.updateEventDetailsInInventory = async (eventData) => {
+  try {
+    console.log("📝 Updating event details in inventory:", eventData.eventId);
+
+    // Build update object with only provided fields
+    const updateFields = {};
+
+    if (eventData.title !== undefined)
+      updateFields.eventTitle = eventData.title;
+    if (eventData.eventCategory !== undefined)
+      updateFields.eventCategory = eventData.eventCategory;
+    if (eventData.startDate !== undefined)
+      updateFields.startDate = eventData.startDate;
+    if (eventData.endDate !== undefined)
+      updateFields.endDate = eventData.endDate;
+    if (eventData.startTime !== undefined)
+      updateFields.startTime = eventData.startTime;
+    if (eventData.endTime !== undefined)
+      updateFields.endTime = eventData.endTime;
+    if (eventData.eventStatus !== undefined)
+      updateFields.eventStatus = eventData.eventStatus;
+    // Handle location fields
+    if (
+      eventData.city !== undefined ||
+      eventData.state !== undefined ||
+      eventData.country !== undefined
+    ) {
+      if (eventData.city !== undefined)
+        updateFields["location.city"] = eventData.city;
+      if (eventData.state !== undefined)
+        updateFields["location.state"] = eventData.state;
+      if (eventData.country !== undefined)
+        updateFields["location.country"] = eventData.country;
+    }
+
+    updateFields.lastSyncedAt = new Date();
+
+    // Update inventory with only the provided fields
+    const inventory = await Inventory.findOneAndUpdate(
+      { eventId: eventData.eventId },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!inventory) {
+      console.log("⚠️ Inventory not found for event:", eventData.eventId);
+      return null;
+    }
+
+    console.log("✅ Event details updated in inventory:", inventory._id);
+    return inventory;
+  } catch (error) {
+    console.error("❌ Error updating event details in inventory:", error);
+    throw error;
+  }
+};
+
+exports.updateInventoryConfiguration = async (inventoryData) => {
+  try {
+    console.log("🔄 Updating inventory configuration:", inventoryData.eventId);
+
+    const inventory = await Inventory.findOne({
+      eventId: inventoryData.eventId,
+    });
+
+    if (!inventory) {
+      console.log("⚠️ Inventory not found for event:", inventoryData.eventId);
+      return null;
+    }
+
+    // Update inventory configuration
+    inventory.ticketTypes = inventoryData.ticketTypes || inventory.ticketTypes;
+    inventory.totalCapacity =
+      inventoryData.totalCapacity || inventory.totalCapacity;
+    inventory.totalAvailable =
+      inventoryData.totalAvailable || inventory.totalAvailable;
+
+    if (inventoryData.bookingSettings) {
+      inventory.bookingSettings = {
+        ...inventory.bookingSettings,
+        maxTicketsPerBooking:
+          inventoryData.bookingSettings.maxTicketsPerBooking ||
+          inventory.bookingSettings.maxTicketsPerBooking,
+        bookingOpenDate:
+          inventoryData.bookingSettings.bookingOpenDate ||
+          inventory.bookingSettings.bookingOpenDate,
+        bookingCloseDate:
+          inventoryData.bookingSettings.bookingCloseDate ||
+          inventory.bookingSettings.bookingCloseDate,
+      };
+    }
+
+    inventory.lastSyncedAt = new Date();
+
+    await inventory.save();
+
+    console.log("✅ Inventory configuration updated:", inventory._id);
+    return inventory;
+  } catch (error) {
+    console.error("❌ Error updating inventory configuration:", error);
+    throw error;
+  }
+};
+
 exports.getInventoriesByQuery = async (req, res) => {
   try {
     const status = req.query.status;
@@ -166,6 +270,7 @@ exports.getInventoriesByQuery = async (req, res) => {
     });
   }
 };
+
 
 exports.getInventoryById = async (req, res) => {
   try {

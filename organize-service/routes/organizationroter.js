@@ -3,9 +3,10 @@ const {
   checkorganization,
   createorganization,
   createEvent,
-  putPublishEvent,
   getEvents,
-  getAllDrafts
+  getAllDrafts,
+  getEventById,
+  updateEvent,
 } = require("../controllers/organizationController");
 const { verifyToken } = require("../middlewares/verifyToken");
 
@@ -19,7 +20,12 @@ organizationrouter.post(
   createorganization
 );
 organizationrouter.post("/create-event", verifyToken, createEvent);
-organizationrouter.put("/publish-event/:id", verifyToken, putPublishEvent);
-organizationrouter.get("/get-drafts/:organizationId" , verifyToken, getAllDrafts);
+organizationrouter.get(
+  "/get-drafts/:organizationId",
+  verifyToken,
+  getAllDrafts
+);
+organizationrouter.get("/get-event/:eventId", verifyToken, getEventById);
+organizationrouter.put("/update-event/:eventId", verifyToken, updateEvent);
 
 module.exports = organizationrouter;

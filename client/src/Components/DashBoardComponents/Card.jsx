@@ -22,6 +22,14 @@ const Card = ({ inventory }) => {
   const handleBooking = (eventId) => {
     navigate(`/dashboard/create-bookings/${eventId}`);
   };
+
+  const handleEditBtn = (inventory) => {
+    navigate(`/dashboard/edit-inventory/${inventory.eventId}`);
+  };
+
+  const handleScheduleBtn = (inventory) => {
+    navigate(`/dashboard/edit-inventory/${inventory.eventId}?status=update`);
+  }
   return (
     <div
       key={inventory._id}
@@ -82,22 +90,26 @@ const Card = ({ inventory }) => {
 
           {/* Right Side - Action Buttons */}
           <div className="flex flex-col gap-2">
-            <button
-              onClick={() => navigate(`/dashboard/inventory/${inventory._id}`)}
-              className="flex items-center justify-center gap-1.5 bg-[#6d27da] text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-[#5a1fb8] hover:shadow-md whitespace-nowrap"
-            >
-              <Edit className="w-3.5 h-3.5" />
-              Edit
-            </button>
-            <button
-              onClick={() =>
-                navigate(`/dashboard/inventory/${inventory._id}/schedule`)
-              }
-              className="flex items-center justify-center gap-1.5 border-2 border-[#6d27da] text-[#6d27da] px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-[#e7dbf8] whitespace-nowrap"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              Schedule
-            </button>
+            {!hasBooking && (
+              <button
+                onClick={() => handleEditBtn(inventory)}
+                className="flex items-center justify-center gap-1.5 bg-[#6d27da] text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-[#5a1fb8] hover:shadow-md whitespace-nowrap"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            )}
+            {!hasBooking && (
+              <button
+                onClick={() =>
+                  handleScheduleBtn(inventory)
+                }
+                className="flex items-center justify-center gap-1.5 border-2 border-[#6d27da] text-[#6d27da] px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-[#e7dbf8] whitespace-nowrap"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                Schedule
+              </button>
+            )}
             {hasBooking && (
               <button
                 onClick={() => handleBooking(inventory.eventId)}

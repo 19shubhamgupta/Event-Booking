@@ -172,58 +172,58 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-exports.putPublishEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const ownerId = req.user.organizationId;
+// exports.putPublishEvent = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const ownerId = req.user.organizationId;
 
-    const owner = await organizer.findById(ownerId);
+//     const owner = await organizer.findById(ownerId);
 
-    if (!owner.events.includes(id))
-      return res.status(403).json({ message: "Not Authorized" });
+//     if (!owner.events.includes(id))
+//       return res.status(403).json({ message: "Not Authorized" });
 
-    const currevent = await event.findById(id).populate("page");
-    currevent.published = true;
-    await currevent.save();
+//     const currevent = await event.findById(id).populate("page");
+//     currevent.published = true;
+//     await currevent.save();
 
-    const eventPage = await page.findById(currevent.page);
+//     const eventPage = await page.findById(currevent.page);
 
-    // Publish to Kafka for Discovery Service
-    await kafkaProducer.publish("event.published", {
-      eventId: currevent._id.toString(),
-      organizationId: ownerId.toString(),
-      title: currevent.title,
-      shortDescription: currevent.shortDescription,
-      startDate: currevent.startDate,
-      endDate: currevent.endDate,
-      startTime: currevent.startTime,
-      endTime: currevent.endTime,
-      city: currevent.city,
-      state: currevent.state,
-      country: currevent.country,
-      locationCoordinates: {
-        latitude: currevent.locationCoordinates.latitude,
-        longitude: currevent.locationCoordinates.longitude,
-      },
-      eventCategory: currevent.eventCategory,
-      page: {
-        pageId: eventPage._id.toString(),
-        slug: eventPage.slug,
-      },
-      published: true,
-      coverImage: currevent.coverImage,
-    });
+//     // Publish to Kafka for Discovery Service
+//     await kafkaProducer.publish("event.published", {
+//       eventId: currevent._id.toString(),
+//       organizationId: ownerId.toString(),
+//       title: currevent.title,
+//       shortDescription: currevent.shortDescription,
+//       startDate: currevent.startDate,
+//       endDate: currevent.endDate,
+//       startTime: currevent.startTime,
+//       endTime: currevent.endTime,
+//       city: currevent.city,
+//       state: currevent.state,
+//       country: currevent.country,
+//       locationCoordinates: {
+//         latitude: currevent.locationCoordinates.latitude,
+//         longitude: currevent.locationCoordinates.longitude,
+//       },
+//       eventCategory: currevent.eventCategory,
+//       page: {
+//         pageId: eventPage._id.toString(),
+//         slug: eventPage.slug,
+//       },
+//       published: true,
+//       coverImage: currevent.coverImage,
+//     });
 
-    return res
-      .status(200)
-      .json({ message: "Published Event", eventData: currevent });
-  } catch (error) {
-    console.log("Error Publishing event:", error);
-    return res
-      .status(500)
-      .json({ message: "Server Error", error: error.message });
-  }
-};
+//     return res
+//       .status(200)
+//       .json({ message: "Published Event", eventData: currevent });
+//   } catch (error) {
+//     console.log("Error Publishing event:", error);
+//     return res
+//       .status(500)
+//       .json({ message: "Server Error", error: error.message });
+//   }
+// };
 
 exports.getEvents = async (req, res) => {
   try {
@@ -278,6 +278,157 @@ exports.getAllDrafts = async (req, res) => {
     });
   } catch (error) {
     console.log("Error fetching drafts:", error);
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
+exports.getEventById = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const organizationId = req.user.organizationId;
+
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    if (!organizationId) {
+      return res.status(403).json({ message: "No Organization Found" });
+    }
+
+    // Find the event
+    const eventData = await event.findById(eventId);
+
+    if (!eventData) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Verify the event belongs to the user's organization
+    const organization = await organizer.findById(organizationId);
+    if (!organization.events.includes(eventId)) {
+      return res.status(403).json({ message: "Not Authorized" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      event: eventData,
+    });
+  } catch (error) {
+    console.log("Error fetching event:", error);
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
+exports.updateEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const organizationId = req.user.organizationId;
+    const updateData = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    if (!organizationId) {
+      return res.status(403).json({ message: "No Organization Found" });
+    }
+
+    // Verify the event belongs to the user's organization
+    const organization = await organizer.findById(organizationId);
+    if (!organization.events.includes(eventId)) {
+      return res.status(403).json({ message: "Not Authorized" });
+    }
+
+    // Build update object with only provided fields
+    const updateFields = {};
+    const allowedFields = [
+      "title",
+      "shortDescription",
+      "eventCategory",
+      "startDate",
+      "endDate",
+      "startTime",
+      "endTime",
+      "eventStatus",
+      "city",
+      "state",
+      "country",
+      "locationCoordinates",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (updateData[field] !== undefined) {
+        updateFields[field] = updateData[field];
+      }
+    });
+
+    // Find and update the event
+    const updatedEvent = await event.findOneAndUpdate(
+      { _id: eventId },
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedEvent) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Build Kafka message with only updated fields
+    const kafkaMessage = {
+      eventId: updatedEvent._id.toString(),
+      organizationId: organizationId.toString(),
+    };
+
+    allowedFields.forEach((field) => {
+      if (updateFields[field] !== undefined) {
+        kafkaMessage[field] = updatedEvent[field];
+      }
+    });
+
+    kafkaProducer.publish("event.updated", kafkaMessage);
+
+    if (updateFields["eventStatus"] === "scheduled") {
+      const eventPage = await page.findById(updatedEvent.page);
+
+      // Publish to Kafka for Discovery Service
+      await kafkaProducer.publish("event.scheduled", {
+        eventId: updatedEvent._id.toString(),
+        organizationId: organizationId.toString(),
+        title: updatedEvent.title,
+        shortDescription: updatedEvent.shortDescription,
+        startDate: updatedEvent.startDate,
+        endDate: updatedEvent.endDate,
+        startTime: updatedEvent.startTime,
+        endTime: updatedEvent.endTime,
+        city: updatedEvent.city,
+        state: updatedEvent.state,
+        country: updatedEvent.country,
+        locationCoordinates: {
+          latitude: updatedEvent.locationCoordinates?.latitude,
+          longitude: updatedEvent.locationCoordinates?.longitude,
+        },
+        eventCategory: updatedEvent.eventCategory,
+        page: eventPage
+          ? {
+              pageId: eventPage._id.toString(),
+              slug: eventPage.slug,
+            }
+          : null,
+        published: true,
+        coverImage: updatedEvent.coverImage,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Event updated successfully",
+      event: updatedEvent,
+    });
+  } catch (error) {
+    console.log("Error updating event:", error);
     return res
       .status(500)
       .json({ message: "Server Error", error: error.message });

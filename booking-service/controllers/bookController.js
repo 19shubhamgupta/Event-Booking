@@ -3,6 +3,7 @@ const EventInventoryService = require("../lib/SeriveClass/EventInventoryService"
 const ReservationService = require("../lib/SeriveClass/ReservationService");
 const TicketService = require("../lib/SeriveClass/TicketService");
 const BookingService = require("../lib/SeriveClass/BookingService");
+const kafkaProducer = require("../lib/kafkaProducer");
 
 exports.bookTickets = async (data) => {
   // after sucessfull payment create booking , tickets , update inventory
@@ -94,14 +95,14 @@ exports.bookTickets = async (data) => {
         data.idempotencyKey || `${data.reservationId}-${Date.now()}`,
     };
 
-    const booking = await BookingService.createBooking(
-      bookingData,
-      session
-    );
+    const booking = await BookingService.createBooking(bookingData, session);
 
     // Commit transaction
     await session.commitTransaction();
-    session.endSession();
+
+    await kafkaProducer.publish("bookTicket.sucesss", {
+      booking,
+    });
 
     return {
       success: true,
@@ -111,9 +112,11 @@ exports.bookTickets = async (data) => {
   } catch (error) {
     console.error("Error in bookTickets:", error);
 
-    // Rollback transaction if it exists
-    if (session) {
+    // Rollback transaction if it exists and is still active
+    if (session && session.inTransaction()) {
       await session.abortTransaction();
+    }
+    if (session) {
       session.endSession();
     }
 

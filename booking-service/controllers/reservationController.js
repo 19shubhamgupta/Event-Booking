@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
 const ReservationService = require("../lib/SeriveClass/ReservationService");
+const kafkaProducer = require("../lib/kafkaProducer");
 
 exports.postReserveTicket = async (req, res) => {
   const session = await mongoose.startSession();
@@ -20,8 +21,9 @@ exports.postReserveTicket = async (req, res) => {
     }
 
     //Update inventory first
+    let result;
     for (const ticket of tickets) {
-      await EventInventoryService.updateInventoryOnReservation(
+      result = await EventInventoryService.updateInventoryOnReservation(
         eventId,
         ticket.ticketType,
         ticket.quantity,
@@ -37,6 +39,19 @@ exports.postReserveTicket = async (req, res) => {
     );
 
     await session.commitTransaction();
+
+    // sending event to dashboard service
+    await kafkaProducer.publish("reservation.success", {
+      reservation,
+    });
+
+    if(result.isSoldOut === true){
+      await kafkaProducer.publish("event.updated", {
+       eventId : result.eventId,
+       organizationId : result.organizationId,
+       eventStatus :"sold_out",
+    });
+    };
 
     return res.status(201).json({
       success: true,
@@ -87,9 +102,9 @@ exports.cancelReservation = async (data) => {
     if (resv.status !== "active") {
       throw new Error(`Cannot cancel reservation with status: ${resv.status}`);
     }
-
+let result ;
     for (const t of resv.tickets) {
-      await EventInventoryService.updateInventoryOnReservationCancel(
+     result  = await EventInventoryService.updateInventoryOnReservationCancel(
         resv.eventId,
         t.ticketType,
         t.quantity,
@@ -106,6 +121,24 @@ exports.cancelReservation = async (data) => {
 
     await session.commitTransaction();
     console.log(`✅ Reservation ${resv._id} cancelled successfully`);
+
+    // sending event to dashboard service
+    await kafkaProducer.publish("reservation.cancelled", {
+      reservation: resv,
+    });
+
+    if (
+      result.bookingSettings.bookingCloseDate >= new Date() &&
+      result.isSoldOut === false &&
+      result.eventStatus === "sold_out"
+    ) {
+      await kafkaProducer.publish("event.updated", {
+        eventId: result.eventId,
+        organizationId: result.organizationId,
+        eventStatus: "booking_open",
+      });
+    }
+
 
     return {
       success: true,

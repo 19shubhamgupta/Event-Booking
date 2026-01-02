@@ -2,6 +2,7 @@ const { Kafka } = require("kafkajs");
 
 const { bookTickets } = require("../controllers/bookController");
 const { cancelReservation } = require("../controllers/reservationController");
+const { handleEventUpdated } = require("../../dashboard-service/lib/kafkaconsumer");
 
 class kafkaConsumer {
   constructor() {
@@ -50,7 +51,7 @@ class kafkaConsumer {
 
       // subscribe to topics
       await this.consumer.subscribe({
-        topics: ["payment.complete"],
+        topics: ["payment.complete", "event.scheduled"],
         fromBeginning: true,
       });
 
@@ -82,6 +83,9 @@ class kafkaConsumer {
       case "payment.complete":
         await this.handlePaymentComplete(event.data);
         break;
+      case "event.scheduled":
+        await this.handleEventScheduled(event.data);
+        break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
@@ -106,6 +110,36 @@ class kafkaConsumer {
     }
   }
 
+  async handleEventScheduled(data) {
+    try {
+      console.log("Processing event.scheduled:", data.eventId);
+
+      // Get booking dates from inventory
+      const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
+      const kafkaProducer = require("./kafkaProducer");
+      const inventory = await EventInventoryService.getInventoryByEventId(
+        data.eventId
+      );
+
+      if (inventory && inventory.bookingSettings) {
+        // Publish booking dates to discovery service
+        await kafkaProducer.publish("event.booking.dates", {
+          eventId: data.eventId,
+          bookingOpenDate: inventory.bookingSettings.bookingOpenDate,
+          bookingCloseDate: inventory.bookingSettings.bookingCloseDate,
+        });
+
+        console.log("✅ Booking dates published for event:", data.eventId);
+      } else {
+        console.log(
+          "⚠️ No inventory or booking settings found for event:",
+          data.eventId
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error handling event.scheduled:", error);
+    }
+  }
   // Producer method to publish events
   async publish(topic, event) {
     try {

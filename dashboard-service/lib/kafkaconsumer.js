@@ -2,7 +2,12 @@ const { Kafka } = require("kafkajs");
 const {
   createInventorywhenEventIsCreated,
   updateInventoryWithTicketConfiguration,
+  updateEventDetailsInInventory,
+  updateInventoryConfiguration,
 } = require("../controllers/inventoryControllers");
+const inventory = require("../models/inventory");
+const mongoose = require("mongoose");
+const SSE = require("./SSE");
 
 class kafkaConsumer {
   constructor() {
@@ -40,6 +45,9 @@ class kafkaConsumer {
           "event.updated",
           "inventory.created",
           "inventory.updated",
+          "reservation.success",
+          "reservation.cancelled",
+          "bookTicket.sucesss",
         ],
         fromBeginning: true,
       });
@@ -81,6 +89,15 @@ class kafkaConsumer {
       case "inventory.updated":
         await this.handleInventoryUpdated(event.data);
         break;
+      case "reservation.success":
+        await this.handleReservationSuccess(event.data);
+        break;
+      case "reservation.cancelled":
+        await this.handleReservationCancel(event.data);
+        break;
+      case "bookTicket.sucesss":
+        await this.handleBookingSuccess(event.data);
+        break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
@@ -98,7 +115,13 @@ class kafkaConsumer {
     }
   }
   async handleEventUpdated(data) {
-    console.log("Processing event.updated:", data);
+    try {
+      console.log("Processing event.updated:", data);
+      await updateEventDetailsInInventory(data);
+      console.log("✅ Event details updated in inventory:", data.eventId);
+    } catch (error) {
+      console.error("❌ Error handling event.updated:", error);
+    }
   }
   async handleInventoryCreated(data) {
     try {
@@ -113,7 +136,303 @@ class kafkaConsumer {
     }
   }
   async handleInventoryUpdated(data) {
-    console.log("Processing inventory.updated:", data);
+    try {
+      console.log("Processing inventory.updated:", data);
+      await updateInventoryConfiguration(data);
+      console.log("✅ Inventory configuration updated:", data.eventId);
+    } catch (error) {
+      console.error("❌ Error handling inventory.updated:", error);
+    }
+  }
+  async handleReservationSuccess(data) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Data comes as { reservation: {...} } from Kafka
+      const reservation = data.reservation || data;
+
+      // Validate reservation
+      if (!reservation || !reservation.eventId) {
+        throw new Error("Invalid reservation data");
+      }
+
+      const inventoryDoc = await inventory.findOne(
+        { eventId: reservation.eventId },
+        null,
+        { session }
+      );
+
+      if (!inventoryDoc) {
+        throw new Error("Inventory not found");
+      }
+
+      let totalQty = 0;
+
+      // Update per-ticket reserved counts
+      for (const t of reservation.tickets) {
+        const ticket = inventoryDoc.ticketTypes.find(
+          (tt) => tt.type === t.ticketType
+        );
+
+        if (!ticket) {
+          throw new Error(`Ticket type not found: ${t.ticketType}`);
+        }
+
+        totalQty += t.quantity;
+
+        await inventory.updateOne(
+          {
+            eventId: reservation.eventId,
+            "ticketTypes.type": t.ticketType,
+          },
+          {
+            $inc: {
+              "ticketTypes.$.availableTickets": -t.quantity,
+              "ticketTypes.$.reservedTickets": t.quantity,
+            },
+          },
+          { session }
+        );
+      }
+
+      // Update aggregate inventory counters
+      const invt = await inventory.updateOne(
+        { eventId: reservation.eventId },
+        {
+          $inc: {
+            totalAvailable: -totalQty,
+            totalReserved: totalQty,
+            activeReservations: 1,
+          },
+          $set: {
+            lastSyncedAt: new Date(),
+          },
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+
+      console.log(
+        `✅ Reservation ${reservation._id} synced to dashboard inventory`
+      );
+
+      SSE.sendToOrganization(
+        inventoryDoc.organizationId,
+        "reservation.success",
+        {
+          eventId: reservation.eventId,
+          reservationId: reservation._id,
+          ticketsReserved: totalQty,
+          tickets: reservation.tickets,
+          userId: reservation.userId,
+          timestamp: new Date(),
+        }
+      );
+
+      console.log("status send to client abt res success");
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("❌ Error handling reservation.success:", error);
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+  async handleBookingSuccess(data) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Data comes as { booking: {...} } from Kafka
+      const booking = data.booking || data;
+
+      if (!booking || !booking.eventId) {
+        throw new Error("Invalid booking data");
+      }
+
+      const inventoryDoc = await inventory.findOne(
+        { eventId: booking.eventId },
+        null,
+        { session }
+      );
+
+      if (!inventoryDoc) {
+        throw new Error("Inventory not found");
+      }
+
+      let totalQty = 0;
+      let totalAmount = 0;
+
+      // Move tickets from reserved to sold
+      for (const t of booking.tickets) {
+        const ticket = inventoryDoc.ticketTypes.find(
+          (tt) => tt.type === t.ticketType
+        );
+
+        if (!ticket) {
+          throw new Error(`Ticket type not found: ${t.ticketType}`);
+        }
+
+        if (ticket.reservedTickets < t.quantity) {
+          throw new Error(`Not enough reserved tickets for ${t.ticketType}`);
+        }
+
+        totalQty += t.quantity;
+        totalAmount += t.quantity * t.price;
+
+        await inventory.updateOne(
+          {
+            eventId: booking.eventId,
+            "ticketTypes.type": t.ticketType,
+          },
+          {
+            $inc: {
+              "ticketTypes.$.reservedTickets": -t.quantity,
+              "ticketTypes.$.soldTickets": t.quantity,
+            },
+          },
+          { session }
+        );
+      }
+
+      // Update aggregate inventory and booking stats
+      await inventory.updateOne(
+        { eventId: booking.eventId },
+        {
+          $inc: {
+            totalReserved: -totalQty,
+            totalSold: totalQty,
+            activeReservations: -1,
+            "bookingStats.totalBookings": 1,
+            "bookingStats.confirmedBookings": 1,
+            "bookingStats.totalRevenue": totalAmount,
+            "bookingStats.netRevenue": totalAmount,
+          },
+          $set: {
+            lastSyncedAt: new Date(),
+          },
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      console.log(`✅ Booking ${booking._id} synced to dashboard inventory`);
+
+      SSE.sendToOrganization(inventoryDoc.organizationId, "booking.success", {
+        eventId: booking.eventId,
+        reservationId: booking.reservationId,
+        tickets: booking.tickets,
+        ticketsBooked: totalQty,
+      });
+    } catch (err) {
+      await session.abortTransaction();
+      console.error("❌ Error handling bookTicket.success:", err);
+      throw err;
+    } finally {
+      session.endSession();
+    }
+  }
+  async handleReservationCancel(data) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Data comes as { reservation: {...} } from Kafka
+      const reservation = data.reservation || data;
+
+      if (!reservation || !reservation.eventId) {
+        throw new Error("Invalid reservation data");
+      }
+
+      const inventoryDoc = await inventory.findOne(
+        { eventId: reservation.eventId },
+        null,
+        { session }
+      );
+
+      if (!inventoryDoc) {
+        throw new Error("Inventory not found for event");
+      }
+
+      let totalQty = 0;
+
+      // Release reserved tickets back to available
+      for (const t of reservation.tickets) {
+        const ticket = inventoryDoc.ticketTypes.find(
+          (tt) => tt.type === t.ticketType
+        );
+
+        if (!ticket) {
+          throw new Error(`Ticket type not found: ${t.ticketType}`);
+        }
+
+        if (ticket.reservedTickets < t.quantity) {
+          throw new Error(
+            `Reserved tickets less than cancellation quantity for ${t.ticketType}`
+          );
+        }
+
+        totalQty += t.quantity;
+
+        await inventory.updateOne(
+          {
+            eventId: reservation.eventId,
+            "ticketTypes.type": t.ticketType,
+          },
+          {
+            $inc: {
+              "ticketTypes.$.availableTickets": t.quantity,
+              "ticketTypes.$.reservedTickets": -t.quantity,
+            },
+          },
+          { session }
+        );
+      }
+
+      // Update aggregate counters
+      await inventory.updateOne(
+        { eventId: reservation.eventId },
+        {
+          $inc: {
+            totalAvailable: totalQty,
+            totalReserved: -totalQty,
+            activeReservations: -1,
+          },
+          $set: {
+            lastSyncedAt: new Date(),
+          },
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      console.log(
+        `✅ Reservation ${reservation._id} cancellation synced to dashboard inventory`
+      );
+
+      SSE.sendToOrganization(
+        inventoryDoc.organizationId,
+        "reservation.cancelled",
+        {
+          eventId: reservation.eventId,
+          reservationId: reservation._id,
+          ticketsReservedCancelled: totalQty,
+          tickets: reservation.tickets,
+          userId: reservation.userId,
+          timestamp: new Date(),
+        }
+      );
+
+      console.log("reservation cancelled sent to client");
+    } catch (err) {
+      await session.abortTransaction();
+      console.error("❌ Error handling reservation.cancelled:", err);
+      throw err;
+    } finally {
+      session.endSession();
+    }
   }
 
   //disconnect consumer

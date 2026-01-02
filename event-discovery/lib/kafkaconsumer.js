@@ -32,7 +32,7 @@ class kafkaConsumer {
 
       // subscribe to topics
       await this.consumer.subscribe({
-        topics: ["event.published", "event.updated"],
+        topics: ["event.scheduled", "event.updated", "event.booking.dates"],
         fromBeginning: true,
       });
 
@@ -58,25 +58,28 @@ class kafkaConsumer {
       throw error;
     }
   }
-
+  
   async handleEvent(topic, eventData) {
     // Extract data from wrapped message structure
     const data = eventData.data || eventData;
-
+    
     switch (topic) {
-      case "event.published":
-        await this.handleEventPublished(data);
+      case "event.scheduled":
+        await this.handleEventScheduled(data);
         break;
-      case "event.updated":
+        case "event.updated":
         await this.handleEventUpdated(data);
+        break;
+      case "event.booking.dates":
+        await this.handleBookingDates(data);
         break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
   }
-
-  async handleEventPublished(data) {
-    console.log("Processing event.published:", data);
+ 
+  async handleEventScheduled(data) {
+    console.log("Processing event.scheduled:", data);
 
     try {
       // Check if event already exists (idempotency)
@@ -89,45 +92,56 @@ class kafkaConsumer {
         return;
       }
 
-      // Create event with GeoJSON location format
-      const currEvent = await Event.create({
+      // Build event object
+      const eventData = {
         eventId: data.eventId,
         organizationId: data.organizationId,
         title: data.title,
         shortDescription: data.shortDescription,
-
-        // Convert date strings to Date objects
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         startTime: data.startTime,
         endTime: data.endTime,
-
-        // Location fields
         city: data.city,
         state: data.state,
         country: data.country,
+        eventCategory: data.eventCategory,
+        coverImage: data.coverImage,
+      };
 
-        // GeoJSON format for geospatial queries
-        // IMPORTANT: MongoDB requires [longitude, latitude] order!
-        location: {
+      // Add location if coordinates are provided
+      if (
+        data.locationCoordinates &&
+        data.locationCoordinates.longitude !== undefined &&
+        data.locationCoordinates.latitude !== undefined
+      ) {
+        eventData.location = {
           type: "Point",
           coordinates: [
             data.locationCoordinates.longitude,
             data.locationCoordinates.latitude,
           ],
-        },
+        };
+      }
 
-        eventCategory: data.eventCategory,
-
-        // Denormalized page data
-        page: {
+      // Add page if provided
+      if (data.page && data.page.pageId && data.page.slug) {
+        eventData.page = {
           pageId: data.page.pageId,
           slug: data.page.slug,
-        },
+        };
+      }
 
-        coverImage: data.coverImage,
-        published: data.published,
-      });
+      // Add booking dates if provided
+      if (data.bookingOpenDate) {
+        eventData.bookingOpenDate = new Date(data.bookingOpenDate);
+      }
+      if (data.bookingCloseDate) {
+        eventData.bookingCloseDate = new Date(data.bookingCloseDate);
+      }
+
+      // Create event
+      const currEvent = await Event.create(eventData);
 
       console.log(
         `✅ Event ${data.eventId} added to discovery service - "${data.title}" in ${data.city}`
@@ -142,30 +156,50 @@ class kafkaConsumer {
     console.log("Processing event.updated:", data);
 
     try {
+      // Build update object with only provided fields
+      const updateFields = {};
+
+      if (data.title !== undefined) updateFields.title = data.title;
+      if (data.shortDescription !== undefined)
+        updateFields.shortDescription = data.shortDescription;
+      if (data.startDate !== undefined)
+        updateFields.startDate = new Date(data.startDate);
+      if (data.endDate !== undefined)
+        updateFields.endDate = new Date(data.endDate);
+      if (data.startTime !== undefined) updateFields.startTime = data.startTime;
+      if (data.endTime !== undefined) updateFields.endTime = data.endTime;
+      if (data.city !== undefined) updateFields.city = data.city;
+      if (data.state !== undefined) updateFields.state = data.state;
+      if (data.country !== undefined) updateFields.country = data.country;
+      if (data.eventCategory !== undefined)
+        updateFields.eventCategory = data.eventCategory;
+      if (data.coverImage !== undefined)
+        updateFields.coverImage = data.coverImage;
+
+      // Handle location coordinates if provided
+      if (
+        data.locationCoordinates &&
+        data.locationCoordinates.longitude !== undefined &&
+        data.locationCoordinates.latitude !== undefined
+      ) {
+        updateFields.location = {
+          type: "Point",
+          coordinates: [
+            data.locationCoordinates.longitude,
+            data.locationCoordinates.latitude,
+          ],
+        };
+      }
+
+      // Handle page slug if provided
+      if (data.page && data.page.slug !== undefined) {
+        updateFields["page.slug"] = data.page.slug;
+      }
+
       // Update existing event in discovery service
       const updatedEvent = await Event.findOneAndUpdate(
         { eventId: data.eventId },
-        {
-          title: data.title,
-          shortDescription: data.shortDescription,
-          startDate: new Date(data.startDate),
-          endDate: new Date(data.endDate),
-          startTime: data.startTime,
-          endTime: data.endTime,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          location: {
-            type: "Point",
-            coordinates: [
-              data.locationCoordinates.longitude,
-              data.locationCoordinates.latitude,
-            ],
-          },
-          eventCategory: data.eventCategory,
-          "page.slug": data.page.slug,
-          coverImage: data.coverImage,
-        },
+        { $set: updateFields },
         { new: true }
       );
 
@@ -176,6 +210,36 @@ class kafkaConsumer {
       }
     } catch (error) {
       console.error(`❌ Error updating event in discovery service:`, error);
+      throw error;
+    }
+  }
+  
+  async handleBookingDates(data) {
+    console.log("Processing event.booking.dates:", data.eventId);
+  
+    try {
+      const updateFields = {};
+  
+      if (data.bookingOpenDate !== undefined) {
+        updateFields.bookingOpenDate = new Date(data.bookingOpenDate);
+      }
+      if (data.bookingCloseDate !== undefined) {
+        updateFields.bookingCloseDate = new Date(data.bookingCloseDate);
+      }
+  
+      const updatedEvent = await Event.findOneAndUpdate(
+        { eventId: data.eventId },
+        { $set: updateFields },
+        { new: true }
+      );
+  
+      if (updatedEvent) {
+        console.log(`✅ Booking dates updated for event ${data.eventId}`);
+      } else {
+        console.log(`⚠️ Event ${data.eventId} not found in discovery service`);
+      }
+    } catch (error) {
+      console.error(`❌ Error updating booking dates:`, error);
       throw error;
     }
   }

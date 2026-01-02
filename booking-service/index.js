@@ -6,8 +6,9 @@ const cors = require("cors");
 const reservationRoter = require("./routes/reservationRoter");
 const inventoryRouter = require("./routes/inventoryRouter");
 const kafkaConsumer = require("./lib/kafkaconsumer");
+const kafkaProducer = require("./lib/kafkaProducer");
 
-require("./lib/expireReservationCleanUp.cron")
+require("./lib/expireReservationCleanUp.cron");
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/inventory", inventoryRouter);
 async function startServer() {
   try {
     await ConnectDB();
+    await kafkaProducer.connect(); // Connect producer first
     await kafkaConsumer.connect(); // Start listening to events
 
     const PORT = process.env.PORT || 5005;
@@ -44,6 +46,7 @@ async function startServer() {
 }
 
 process.on("SIGINT", async () => {
+  await kafkaProducer.disconnect();
   await kafkaConsumer.disconnect();
   process.exit(0);
 });

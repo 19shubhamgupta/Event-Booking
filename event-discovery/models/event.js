@@ -53,8 +53,25 @@ const eventSchema = new mongoose.Schema(
 
     eventStatus: {
       type: String,
-      enum: ["draft","scheduled", "booking_open","sold_out", "booking_closed", "cancelled"],
-      default: "draft",
+      enum: [
+        "scheduled",
+        "booking_open",
+        "sold_out",
+        "booking_closed",
+        "cancelled",
+      ],
+      default: "scheduled",
+      index: true,
+    },
+
+    // Booking dates
+    bookingOpenDate: {
+      type: Date,
+      index: true,
+    },
+
+    bookingCloseDate: {
+      type: Date,
       index: true,
     },
 
@@ -110,7 +127,6 @@ const eventSchema = new mongoose.Schema(
     eventCategory: {
       type: String,
       required: true,
-      enum: ["Music", "Sports", "Technology", "Arts", "Food", "Other"],
       index: true,
     },
 
@@ -131,8 +147,6 @@ const eventSchema = new mongoose.Schema(
     coverImage: {
       type: String,
     },
-
-    
   },
   {
     timestamps: true,
@@ -150,11 +164,5 @@ eventSchema.index({ location: "2dsphere" });
 
 // Text index for search functionality
 eventSchema.index({ title: "text", shortDescription: "text" });
-
-
-
-
-
-
 
 module.exports = mongoose.model("Event", eventSchema);

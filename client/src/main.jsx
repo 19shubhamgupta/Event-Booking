@@ -14,6 +14,7 @@ import TicketDetailsPage from "./Pages/TicketDetailsPage.jsx";
 import Dashboard from "./Pages/Dashboard.jsx";
 import Manage from "./Components/DashBoardComponents/Manage.jsx";
 import CreateEventPage from "./Components/DashBoardComponents/CreateEventPage.jsx";
+import ViewEditInventory from "./Components/DashBoardComponents/veInventory.jsx";
 
 const router = createBrowserRouter([
   {
@@ -33,9 +34,10 @@ const router = createBrowserRouter([
           { path: "drafts", element: <OrganizePage /> },
           { path: "drafts/:id", element: <OrganizePage /> },
           { path: "create-bookings/:id", element: <CreateInventoryPage /> },
+          { path: "edit-inventory/:id", element: <ViewEditInventory /> },
           {
             path: "create-event",
-            element: <CreateEventPage />, ///create-bookings/${creatingEventId}
+            element: <CreateEventPage />, //create-bookings/${creatingEventId}
           },
         ],
       },

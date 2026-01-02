@@ -31,6 +31,7 @@ export const useEventStore = create((set) => ({
             : [...(state.upComingEvents || []), ...res.data.events],
         isLoadingUpcoming: false,
       }));
+      console.log("up com in getUpcoming : ", res.data.events)
     } catch (err) {
       if (err.response) {
         toast.error(err.response.data?.message || "Loading Failed");
