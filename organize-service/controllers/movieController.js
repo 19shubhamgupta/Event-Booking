@@ -1,4 +1,5 @@
 const Movie = require("../models/movie");
+const kafkaProducer = require("../lib/kafkaProducer");
 
 exports.getMovie = async (req, res) => {
   try {
@@ -22,6 +23,7 @@ exports.addMovie = async (req, res) => {
     if (!movieData) res.status(404).json({ message: "Movie data is required" });
     const newMovie = new Movie(movieData);
     await newMovie.save();
+    kafkaProducer.publish("movie.added",newMovie);
     res.status(201).json(newMovie);
   } catch (error) {
     console.error("Error adding movie:", error);
@@ -70,5 +72,16 @@ exports.updateMovie = async (req, res) => {
   }
 };
 
+exports.getAllMovies = async (req, res) => {
+  try{
+    const movies =  await Movie.find({
+      status: { $in: ["now_showing", "upcoming"] },
+    }).select("_id title");
+    res.status(200).json(movies);
+  }catch(error){
+    console.error("Error fetching movies:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
 
 

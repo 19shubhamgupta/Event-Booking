@@ -21,21 +21,34 @@ exports.addScreen = async (req, res) => {
   try {
     const screenData = req.body;
     if (!screenData)
-      res.status(404).json({ message: "Screen data is required" });
-    const newScreen = new Screen(screenData);
+      return res.status(400).json({ message: "Screen data is required" });
+
+    // Handle both theatreId and theaterId field names
+    const theaterId = screenData.theaterId || screenData.theatreId;
+    if (!theaterId) {
+      return res.status(400).json({ message: "Theatre ID is required" });
+    }
+
+    // Ensure theaterId is set correctly for the model
+    const screenToSave = {
+      ...screenData,
+      theaterId: theaterId,
+    };
+
+    const newScreen = new Screen(screenToSave);
     await newScreen.save();
 
     // Add screen reference to theater
-    if (screenData.theaterId) {
-      await Theater.findByIdAndUpdate(screenData.theaterId, {
-        $push: { screens: newScreen._id },
-      });
-    }
+    await Theater.findByIdAndUpdate(theaterId, {
+      $push: { screens: newScreen._id },
+    });
 
     res.status(201).json(newScreen);
   } catch (error) {
     console.error("Error adding screen:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
 

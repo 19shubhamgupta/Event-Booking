@@ -2,6 +2,7 @@ import React from "react";
 import { useStoreAuth } from "../store/useAuthStore";
 import UpcomingEventsSection from "../Components/HomePageComponents/UpcomingEventsSection";
 import CategoryEventsSection from "../Components/HomePageComponents/CategoryEventsSection";
+import MoviesSection from "../Components/HomePageComponents/MoviesSection";
 
 const HomePage = () => {
   const { authUser } = useStoreAuth();
@@ -25,6 +26,9 @@ const HomePage = () => {
 
           {/* Category Events */}
           <CategoryEventsSection />
+
+          {/* Movies */}
+          <MoviesSection />
         </div>
       </div>
     )

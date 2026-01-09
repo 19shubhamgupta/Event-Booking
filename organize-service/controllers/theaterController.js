@@ -1,4 +1,5 @@
 const Theater = require("../models/theatre");
+const Screen = require("../models/screen"); // Import Screen model for populate
 
 exports.getTheater = async (req, res) => {
   try {

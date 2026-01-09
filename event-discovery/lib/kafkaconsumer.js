@@ -1,5 +1,6 @@
 const { Kafka } = require("kafkajs");
 const Event = require("../models/event");
+const Movie = require("../models/movie");
 
 class kafkaConsumer {
   constructor() {
@@ -32,7 +33,12 @@ class kafkaConsumer {
 
       // subscribe to topics
       await this.consumer.subscribe({
-        topics: ["event.scheduled", "event.updated", "event.booking.dates"],
+        topics: [
+          "event.scheduled",
+          "event.updated",
+          "event.booking.dates",
+          "movie.added",
+        ],
         fromBeginning: true,
       });
 
@@ -58,31 +64,35 @@ class kafkaConsumer {
       throw error;
     }
   }
-  
+
   async handleEvent(topic, eventData) {
     // Extract data from wrapped message structure
     const data = eventData.data || eventData;
-    
+
     switch (topic) {
       case "event.scheduled":
         await this.handleEventScheduled(data);
         break;
-        case "event.updated":
+      case "event.updated":
         await this.handleEventUpdated(data);
         break;
       case "event.booking.dates":
         await this.handleBookingDates(data);
         break;
+      case "movie.added":
+        await this.handleMovieAdded(data);
+        break;
       default:
         console.log(`Unhandled topic: ${topic}`);
     }
   }
- 
+
   async handleEventScheduled(data) {
     console.log("Processing event.scheduled:", data);
 
     try {
       // Check if event already exists (idempotency)
+      if (data.eventCategory && data.eventCategory === "show") return;
       const existingEvent = await Event.findOne({ eventId: data.eventId });
 
       if (existingEvent) {
@@ -213,26 +223,26 @@ class kafkaConsumer {
       throw error;
     }
   }
-  
+
   async handleBookingDates(data) {
     console.log("Processing event.booking.dates:", data.eventId);
-  
+
     try {
       const updateFields = {};
-  
+
       if (data.bookingOpenDate !== undefined) {
         updateFields.bookingOpenDate = new Date(data.bookingOpenDate);
       }
       if (data.bookingCloseDate !== undefined) {
         updateFields.bookingCloseDate = new Date(data.bookingCloseDate);
       }
-  
+
       const updatedEvent = await Event.findOneAndUpdate(
         { eventId: data.eventId },
         { $set: updateFields },
         { new: true }
       );
-  
+
       if (updatedEvent) {
         console.log(`✅ Booking dates updated for event ${data.eventId}`);
       } else {
@@ -240,6 +250,22 @@ class kafkaConsumer {
       }
     } catch (error) {
       console.error(`❌ Error updating booking dates:`, error);
+      throw error;
+    }
+  }
+
+  async handleMovieAdded(data) {
+    try {
+      if (!data) {
+        console.log("No movie data provided");
+        return;
+      }
+      console.log("Processing movie.added:", data);
+      const newMovie = await Movie.create(data);
+      newMovie.save();
+      console.log(`✅ Movie ${data._id} added to organize service`);
+    } catch (error) {
+      console.error(`❌ Error adding movie in organize service:`, error);
       throw error;
     }
   }

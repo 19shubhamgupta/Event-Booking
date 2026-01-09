@@ -1,12 +1,16 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useOrganizationStore } from "../../store/useOrganization";
+import { useTheatreStore } from "../../store/useTheatreStore";
 
 const CreateInventoryPage = () => {
   const { id: eventId } = useParams();
+  const [searchParams] = useSearchParams();
+  const isShow = searchParams.get("show") === "true";
   const [step, setStep] = useState(1);
+  const [loadingScreen, setLoadingScreen] = useState(false);
   const navigate = useNavigate();
 
   // Initialize react-hook-form with ticketTypes array
@@ -26,16 +30,74 @@ const CreateInventoryPage = () => {
     },
   });
 
-  const { organization, createInventory, creatingInventory } =
-    useOrganizationStore();
+  const {
+    organization,
+    createInventory,
+    creatingInventory,
+    getShowDetailsById,
+  } = useOrganizationStore();
+  const { getScreenById } = useTheatreStore();
   // Use field array for dynamic ticket types
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: "ticketTypes",
   });
 
   // Watch form values for validation
   const watchedValues = watch();
+
+  // Fetch screen data for shows and populate ticket types
+  useEffect(() => {
+    const fetchScreenData = async () => {
+      if (isShow && eventId) {
+        setLoadingScreen(true);
+        try {
+          // Get show details first to get screenId
+          const showData = await getShowDetailsById(eventId);
+          if (showData && showData.screenId) {
+            // Extract screenId - it might be populated object or just ID
+            const screenId =
+              typeof showData.screenId === "object"
+                ? showData.screenId._id
+                : showData.screenId;
+
+            // Fetch screen details
+            const screenData = await getScreenById(screenId);
+            if (screenData && screenData.seats) {
+              // Count seats by type
+              const seatCounts = {};
+              screenData.seats.forEach((seat) => {
+                if (seat.type !== "spacer") {
+                  seatCounts[seat.type] = (seatCounts[seat.type] || 0) + 1;
+                }
+              });
+
+              // Create ticket types from seat types
+              const ticketTypes = Object.entries(seatCounts).map(
+                ([type, count]) => ({
+                  type: type.charAt(0).toUpperCase() + type.slice(1),
+                  price: 0,
+                  totalCapacity: count,
+                  description: `${
+                    type.charAt(0).toUpperCase() + type.slice(1)
+                  } seating`,
+                })
+              );
+
+              // Replace the default ticket types with screen-based ones
+              replace(ticketTypes);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching screen data:", error);
+        } finally {
+          setLoadingScreen(false);
+        }
+      }
+    };
+
+    fetchScreenData();
+  }, [isShow, eventId, getShowDetailsById, getScreenById, replace]);
 
   // Add new ticket type
   const addTicketType = () => {
@@ -147,120 +209,149 @@ const CreateInventoryPage = () => {
         return (
           <div key="step-1" className="space-y-4">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Configure Ticket Types
+              {isShow
+                ? "Configure Show Ticket Prices"
+                : "Configure Ticket Types"}
             </h2>
 
-            {/* Ticket Types */}
-            {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="p-4 border-2 border-blue-100 rounded-lg space-y-3 relative"
-              >
-                {/* Remove button */}
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeTicketType(index)}
-                    className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-
-                <h3 className="font-semibold text-gray-700">
-                  Ticket Type {index + 1}
-                </h3>
-
-                {/* Ticket Type Name */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Ticket Name *
-                  </label>
-                  <Controller
-                    name={`ticketTypes.${index}.type`}
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        type="text"
-                        className="w-full p-2 border rounded-md"
-                        placeholder="e.g., VIP, General, Early Bird"
-                      />
-                    )}
-                  />
-                </div>
-
-                {/* Price and Capacity - Side by Side */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Price (₹) *
-                    </label>
-                    <Controller
-                      name={`ticketTypes.${index}.price`}
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="w-full p-2 border rounded-md"
-                          placeholder="0.00"
-                        />
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Total Capacity *
-                    </label>
-                    <Controller
-                      name={`ticketTypes.${index}.totalCapacity`}
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="1"
-                          className="w-full p-2 border rounded-md"
-                          placeholder="100"
-                        />
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Description (Optional)
-                  </label>
-                  <Controller
-                    name={`ticketTypes.${index}.description`}
-                    control={control}
-                    render={({ field }) => (
-                      <textarea
-                        {...field}
-                        className="w-full p-2 border rounded-md h-20"
-                        placeholder="Brief description of this ticket type"
-                      />
-                    )}
-                  />
-                </div>
+            {loadingScreen && (
+              <div className="text-center py-4">
+                <p className="text-gray-600">Loading screen layout...</p>
               </div>
-            ))}
+            )}
 
-            {/* Add Ticket Type Button */}
-            <button
-              type="button"
-              onClick={addTicketType}
-              className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg 
-                       text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
-            >
-              <Plus size={18} />
-              Add Another Ticket Type
-            </button>
+            {!loadingScreen && isShow && (
+              <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Ticket types and capacities are based
+                  on your screen layout. You can only set prices.
+                </p>
+              </div>
+            )}
+
+            {/* Ticket Types */}
+            {!loadingScreen &&
+              fields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="p-4 border-2 border-blue-100 rounded-lg space-y-3 relative"
+                >
+                  {/* Remove button - only show for events, not shows */}
+                  {!isShow && fields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTicketType(index)}
+                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+
+                  <h3 className="font-semibold text-gray-700">
+                    Ticket Type {index + 1}
+                  </h3>
+
+                  {/* Ticket Type Name */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Ticket Name *
+                    </label>
+                    <Controller
+                      name={`ticketTypes.${index}.type`}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="text"
+                          disabled={isShow}
+                          className={`w-full p-2 border rounded-md capitalize ${
+                            isShow ? "bg-gray-100 cursor-not-allowed" : ""
+                          }`}
+                          placeholder="e.g., VIP, General, Early Bird"
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Price and Capacity - Side by Side */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Price (₹) *
+                      </label>
+                      <Controller
+                        name={`ticketTypes.${index}.price`}
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="w-full p-2 border rounded-md"
+                            placeholder="0.00"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Total Capacity *
+                      </label>
+                      <Controller
+                        name={`ticketTypes.${index}.totalCapacity`}
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="number"
+                            min="1"
+                            disabled={isShow}
+                            className={`w-full p-2 border rounded-md ${
+                              isShow ? "bg-gray-100 cursor-not-allowed" : ""
+                            }`}
+                            placeholder="100"
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Description (Optional)
+                    </label>
+                    <Controller
+                      name={`ticketTypes.${index}.description`}
+                      control={control}
+                      render={({ field }) => (
+                        <textarea
+                          {...field}
+                          disabled={isShow}
+                          className={`w-full p-2 border rounded-md h-20 ${
+                            isShow ? "bg-gray-100 cursor-not-allowed" : ""
+                          }`}
+                          placeholder="Brief description of this ticket type"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
+
+            {/* Add Ticket Type Button - only for events */}
+            {!isShow && (
+              <button
+                type="button"
+                onClick={addTicketType}
+                className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg 
+                         text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Add Another Ticket Type
+              </button>
+            )}
 
             {/* Total Capacity Summary */}
             <div className="bg-blue-50 p-4 rounded-lg">

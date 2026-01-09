@@ -189,6 +189,38 @@ export const useOrganizationStore = create((set) => ({
     }
   },
 
+  getShowDetailsById: async (showId) => {
+    try {
+      const res = await axiosInstance.get(`/organize/show/get-show/${showId}`);
+      return res.data;
+    } catch (err) {
+      console.log("error in fetching show details : ", err);
+      if (err.response) {
+        toast.error(
+          err.response.data?.message || "Failed to Fetch Show Details"
+        );
+      }
+    }
+  },
+
+  updateShow: async (showId, showData) => {
+    try {
+      const res = await axiosInstance.patch(
+        `/organize/show/update-show/${showId}`,
+        showData
+      );
+      if (res.data) {
+        toast.success("Show updated successfully");
+        return res.data.updatedShow;
+      }
+    } catch (err) {
+      console.log("error in updating show : ", err);
+      if (err.response) {
+        toast.error(err.response.data?.message || "Failed to Update Show");
+      }
+    }
+  },
+
   getInventoryByEventId: async (eventId) => {
     try {
       const res = await axiosInstance.get(
@@ -241,6 +273,21 @@ export const useOrganizationStore = create((set) => ({
     }
   },
 
+  createMovie: async (movieData) => {
+    try {
+      const res = await axiosInstance.post(
+        `/organize/movie/add-movie`,
+        movieData
+      );
+      if (res.data) {
+        toast.success("Movie created successfully");
+      }
+    } catch (err) {
+      console.log("error in updating inventory : ", err);
+
+      toast.error("Failed to Create Movie");
+    }
+  },
   // Clear creating event ID
   clearCreatingEventId: () => {
     set({ creatingEventId: null });

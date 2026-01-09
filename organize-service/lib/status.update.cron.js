@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const Event = require("../models/event");
 const kafkaProducer = require("./kafkaProducer");
+const show = require("../models/show");
 
 class EventStatusScheduler {
   constructor() {
@@ -16,8 +17,102 @@ class EventStatusScheduler {
     // Run every minute to check for status changes
     this.scheduleBookingOpenJob();
     this.scheduleBookingCloseJob();
+    this.scheduleBookingOpenForShowJob();
+    this.scheduleBookingCloseForShowJob();
 
     console.log("✅ Event Status Scheduler initialized");
+  }
+
+  //schedule shows when booking is open
+  scheduleBookingOpenForShowJob() {
+    const job = cron.schedule("* * * * *", async () => {
+      try {
+        const now = new Date();
+
+        const currShows = await show
+          .find({
+            showStatus: "scheduled",
+            bookingOpenDate: { $lte: now },
+          })
+          .limit(50)
+          .select("_id");
+
+        if (currShows.length > 0) {
+          console.log(
+            `📢 Found ${currShows.length} shows to open for booking`
+          );
+          for (const id of currShows) {
+            const cShow = await show.findByIdAndUpdate(
+              id,
+              {
+                $set: {
+                  showStatus: "booking_open",
+                },
+              }
+            );
+            console.log(
+              `📢 Show booking opened for show: ${cShow.movieName} at ${cShow.showTime}  `
+            );
+            await kafkaProducer.publish("event.updated", {
+              eventId: cShow._id.toString(),
+              eventStatus: "booking_open",
+              updatedAt: new Date(),
+            });
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error in show booking open scheduler:", error);
+      }
+    });
+
+    this.jobs.set("show-booking-open", job);
+    console.log("✅ Show booking open scheduler started");
+  }
+
+  //schedule shows when booking is closed
+  scheduleBookingCloseForShowJob() {
+    const job = cron.schedule("* * * * *", async () => {
+      try {
+        const now = new Date();
+
+        const currShows = await show
+          .find({
+            showStatus: { $in: ["booking_open", "sold_out"] },
+            bookingCloseDate: { $lte: now },
+          })
+          .limit(50)
+          .select("_id");
+
+        if (currShows.length > 0) {
+          console.log(
+            `🔒 Found ${currShows.length} shows to close booking`
+          );
+          for (const id of currShows) {
+            const cShow = await show.findByIdAndUpdate(
+              id,
+              {
+                $set: {
+                  showStatus: "booking_closed",
+                },
+              }
+            );
+            console.log(
+              `🔒 Show booking closed for show: ${cShow.movieName} at ${cShow.showTime}  `
+            );
+            await kafkaProducer.publish("event.updated", {
+              eventId: cShow._id.toString(),
+              eventStatus: "booking_closed",
+              updatedAt: new Date(),
+            });
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error in show booking close scheduler:", error);
+      }
+    });
+
+    this.jobs.set("show-booking-close", job);
+    console.log("✅ Show booking close scheduler started");
   }
 
   /**
@@ -36,7 +131,9 @@ class EventStatusScheduler {
         });
 
         if (eventsToOpen.length > 0) {
-          console.log(`📢 Found ${eventsToOpen.length} events to open for booking`);
+          console.log(
+            `📢 Found ${eventsToOpen.length} events to open for booking`
+          );
 
           for (const event of eventsToOpen) {
             await this.transitionToBookingOpen(event);
@@ -67,7 +164,9 @@ class EventStatusScheduler {
         });
 
         if (eventsToClose.length > 0) {
-          console.log(`🔒 Found ${eventsToClose.length} events to close booking`);
+          console.log(
+            `🔒 Found ${eventsToClose.length} events to close booking`
+          );
 
           for (const event of eventsToClose) {
             await this.transitionToBookingClosed(event);
@@ -87,7 +186,9 @@ class EventStatusScheduler {
    */
   async transitionToBookingOpen(event) {
     try {
-      console.log(`📢 Opening booking for event: ${event._id} - ${event.title}`);
+      console.log(
+        `📢 Opening booking for event: ${event._id} - ${event.title}`
+      );
 
       // Update event status
       event.eventStatus = "booking_open";
@@ -114,7 +215,9 @@ class EventStatusScheduler {
    */
   async transitionToBookingClosed(event) {
     try {
-      console.log(`🔒 Closing booking for event: ${event._id} - ${event.title}`);
+      console.log(
+        `🔒 Closing booking for event: ${event._id} - ${event.title}`
+      );
 
       const previousStatus = event.eventStatus;
 

@@ -25,13 +25,13 @@ exports.createInventorywhenEventIsCreated = async (eventData) => {
       eventCategory: eventData.eventCategory,
       eventStatus: "draft", // Initial status
       startDate: eventData.startDate,
-      endDate: eventData.endDate,
+      endDate: eventData.endDate || null,
       startTime: eventData.startTime,
       endTime: eventData.endTime,
       location: {
-        city: eventData.city,
-        state: eventData.state,
-        country: eventData.country,
+        city: eventData.city || null,
+        state: eventData.state || null,
+        country: eventData.country || null,
       },
 
       // Initialize with empty ticket types (will be populated later)

@@ -15,6 +15,13 @@ import Dashboard from "./Pages/Dashboard.jsx";
 import Manage from "./Components/DashBoardComponents/Manage.jsx";
 import CreateEventPage from "./Components/DashBoardComponents/CreateEventPage.jsx";
 import ViewEditInventory from "./Components/DashBoardComponents/veInventory.jsx";
+import ManageTheatrePage from "./Components/TheatreComponents/ManageTheatrePage.jsx";
+import TheatreRoute from "./Components/TheatreComponents/TheatreRoute.jsx";
+import AddScreenPage from "./Components/TheatreComponents/AddScreenPage.jsx";
+import AddShowPage from "./Components/TheatreComponents/AddShowPage.jsx";
+import SelectShowPage from "./Pages/SelectShowPage.jsx";
+import AddMoviePage from "./Pages/AddMoviePage.jsx";
+import SeatSelectionPage from "./Pages/SeatSelectionPage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -24,6 +31,8 @@ const router = createBrowserRouter([
       { path: "/", element: <HomePage /> },
       { path: "/organize", element: <OrganizeRoute /> },
       { path: "/view-event", element: <ViewEventPage /> },
+      { path: "/view-show/:movieId", element: <SelectShowPage /> },
+      { path: "/seat-selection/:showId", element: <SeatSelectionPage /> },
       { path: "/ticket-details/:eventId", element: <TicketDetailsPage /> },
       { path: "/payment/:reservationId", element: <PaymentPage /> },
       {
@@ -39,16 +48,36 @@ const router = createBrowserRouter([
             path: "create-event",
             element: <CreateEventPage />, //create-bookings/${creatingEventId}
           },
+          {
+            path: "theatre",
+            element: <TheatreRoute />,
+          },
+          {
+            path: "manage-theatre",
+            element: <ManageTheatrePage />,
+          },
+          {
+            path: "theatre/add-screen",
+            element: <AddScreenPage />,
+          },
+          {
+            path: "theatre/add-show",
+            element: <AddShowPage />,
+          },
         ],
       },
     ],
+  },
+  {
+    path: "/add-movie",
+    element: <AddMoviePage />,
   },
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
 ]);
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+  
     <RouterProvider router={router} />
-  </StrictMode>
+  
 );

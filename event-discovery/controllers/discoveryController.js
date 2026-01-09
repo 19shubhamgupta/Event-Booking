@@ -1,4 +1,5 @@
 const event = require("../models/event");
+const movie = require("../models/movie");
 
 exports.getUpcoming = async (req, res) => {
   try {
@@ -11,13 +12,7 @@ exports.getUpcoming = async (req, res) => {
     const upEvents = await event
       .find({
         eventStatus: {
-          $in: [
-            
-            "scheduled",
-            "booking_open",
-            "booking_closed",
-            "sold_out",
-          ],
+          $in: ["booking_open"],
         },
         bookingCloseDate: { $gte: new Date() },
       })
@@ -28,13 +23,7 @@ exports.getUpcoming = async (req, res) => {
     // Get total count for pagination metadata
     const totalCount = await event.countDocuments({
       eventStatus: {
-        $in: [
-          
-          "scheduled",
-          "booking_open",
-          "booking_closed",
-          "sold_out",
-        ],
+        $in: ["booking_open"],
       },
       bookingCloseDate: { $gte: new Date() },
     });
@@ -73,13 +62,7 @@ exports.getEventBycategory = async (req, res) => {
         {
           $match: {
             eventStatus: {
-              $in: [
-                
-                "scheduled",
-                "booking_open",
-                "booking_closed",
-                "sold_out",
-              ],
+              $in: ["booking_open"],
             },
             bookingCloseDate: { $gte: new Date() },
           },
@@ -117,13 +100,7 @@ exports.getEventBycategory = async (req, res) => {
             .find({
               eventCategory: categoryName,
               eventStatus: {
-                $in: [
-                  
-                  "scheduled",
-                  "booking_open",
-                  "booking_closed",
-                  "sold_out",
-                ],
+                $in: ["booking_open"],
               },
               bookingCloseDate: { $gte: new Date() },
             })
@@ -151,13 +128,7 @@ exports.getEventBycategory = async (req, res) => {
         .find({
           eventCategory: category,
           eventStatus: {
-            $in: [
-              
-              "scheduled",
-              "booking_open",
-              "booking_closed",
-              "sold_out",
-            ],
+            $in: ["booking_open"],
           },
           bookingCloseDate: { $gte: new Date() },
         })
@@ -169,13 +140,7 @@ exports.getEventBycategory = async (req, res) => {
       const totalCount = await event.countDocuments({
         eventCategory: category,
         eventStatus: {
-          $in: [
-            
-            "scheduled",
-            "booking_open",
-            "booking_closed",
-            "sold_out",
-          ],
+          $in: ["booking_open"],
         },
         bookingCloseDate: { $gte: new Date() },
       });
@@ -200,5 +165,49 @@ exports.getEventBycategory = async (req, res) => {
       error.message
     );
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.getMovies = async (req, res) => {
+  try {
+    let page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    if (page <= 0) page = 1;
+    const skip = (page - 1) * limit;
+
+    const movies = await movie
+      .find({
+        status: {
+          $in: ["now_showing", "upcoming"],
+        },
+      })
+      .sort({ releaseDate: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalCount = await movie.countDocuments({
+      status: {
+        $in: ["now_showing", "upcoming"],
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      events: movies,
+      pagination: {
+        currentPage: page,
+        limit: limit,
+        totalEvents: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error in discovery service while getting movies:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };

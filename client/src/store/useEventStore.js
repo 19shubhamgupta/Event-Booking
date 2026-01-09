@@ -7,8 +7,10 @@ export const useEventStore = create((set) => ({
   isloadingUpcoming: false,
   isLoadingCatPage: false,
   isLoading: false,
+  isLoadingMovies: false,
 
   upComingEvents: null,
+  movies: null,
   eventOne: null,
   eventTwo: null,
   eventThree: null,
@@ -31,7 +33,7 @@ export const useEventStore = create((set) => ({
             : [...(state.upComingEvents || []), ...res.data.events],
         isLoadingUpcoming: false,
       }));
-      console.log("up com in getUpcoming : ", res.data.events)
+      console.log("up com in getUpcoming : ", res.data.events);
     } catch (err) {
       if (err.response) {
         toast.error(err.response.data?.message || "Loading Failed");
@@ -118,6 +120,27 @@ export const useEventStore = create((set) => ({
       }
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  getMoviesByPage: async (page = 1) => {
+    set({ isLoadingMovies: true });
+    try {
+      const res = await axiosInstance.get(
+        `/events/view/get-movies?page=${page}`
+      );
+      set((state) => ({
+        movies:
+          page === 1
+            ? res.data.events
+            : [...(state.movies || []), ...res.data.events],
+        isLoadingMovies: false,
+      }));
+      console.log("Movies in getMoviesByPage: ", res.data.events);
+    } catch (error) {
+      console.error("Error fetching movies by page:", error);
+      toast.error("Failed to fetch movies");
+      set({ isLoadingMovies: false });
     }
   },
 

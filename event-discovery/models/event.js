@@ -134,11 +134,9 @@ const eventSchema = new mongoose.Schema(
     page: {
       pageId: {
         type: String,
-        required: true,
       },
       slug: {
         type: String,
-        required: true,
         index: true,
       },
     },

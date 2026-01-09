@@ -8,6 +8,7 @@ import {
   MdAdd,
   MdKeyboardArrowDown,
   MdKeyboardArrowUp,
+  MdTheaters,
 } from "react-icons/md";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useOrganizationStore } from "../../store/useOrganization";
@@ -37,6 +38,11 @@ const Sidebar = ({ open, setOpen }) => {
       name: "Create Event",
       link: "/dashboard/create-event",
       icon: MdAddCircle,
+    },
+    {
+      name: "Theatre",
+      link: "/dashboard/theatre",
+      icon: MdTheaters,
     },
   ];
 

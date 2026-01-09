@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+//showId === eventId 
+
 const ticketTypeSchema = new mongoose.Schema(
   {
     type: {

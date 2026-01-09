@@ -20,16 +20,23 @@ const Card = ({ inventory }) => {
   }, [inventory.totalCapacity]);
 
   const handleBooking = (eventId) => {
-    navigate(`/dashboard/create-bookings/${eventId}`);
+    if (inventory.eventCategory === "show") {
+      navigate(`/dashboard/create-bookings/${inventory.eventId}?show=true`);
+    } else navigate(`/dashboard/create-bookings/${eventId}`);
   };
 
   const handleEditBtn = (inventory) => {
-    navigate(`/dashboard/edit-inventory/${inventory.eventId}`);
+    if (inventory.eventCategory === "show") {
+      navigate(`/dashboard/edit-inventory/${inventory.eventId}?show=true`);
+    } else navigate(`/dashboard/edit-inventory/${inventory.eventId}`);
   };
 
   const handleScheduleBtn = (inventory) => {
-    navigate(`/dashboard/edit-inventory/${inventory.eventId}?status=update`);
-  }
+    if (inventory.eventCategory === "show") {
+      navigate(`/dashboard/edit-inventory/${inventory.eventId}?show=true&status=update`);
+    } else
+      navigate(`/dashboard/edit-inventory/${inventory.eventId}?status=update`);
+  };
   return (
     <div
       key={inventory._id}
@@ -101,9 +108,7 @@ const Card = ({ inventory }) => {
             )}
             {!hasBooking && (
               <button
-                onClick={() =>
-                  handleScheduleBtn(inventory)
-                }
+                onClick={() => handleScheduleBtn(inventory)}
                 className="flex items-center justify-center gap-1.5 border-2 border-[#6d27da] text-[#6d27da] px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-[#e7dbf8] whitespace-nowrap"
               >
                 <Calendar className="w-3.5 h-3.5" />

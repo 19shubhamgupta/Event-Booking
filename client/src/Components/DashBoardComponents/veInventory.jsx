@@ -9,11 +9,14 @@ const ViewEditInventory = () => {
 
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
+  const show = searchParams.get("show");
 
   const {
     getEventDetailsById,
+    getShowDetailsById,
     getInventoryByEventId,
     updateEvent,
+    updateShow,
     updateInventory,
   } = useOrganizationStore();
   const [event, setEvent] = useState(null);
@@ -39,6 +42,12 @@ const ViewEditInventory = () => {
       latitude: "",
       longitude: "",
 
+      // Show-specific fields
+      movieName: "",
+      showDate: "",
+      showTime: "",
+      showStatus: "",
+
       // Inventory Details
       ticketTypes: [],
       maxTicketsPerBooking: 10,
@@ -61,8 +70,14 @@ const ViewEditInventory = () => {
       if (eventId) {
         setLoading(true);
 
-        // Fetch event details from organize-service
-        const eventData = await getEventDetailsById(eventId);
+        // Fetch event/show details from organize-service
+        let eventData = null;
+        if (show) {
+          eventData = await getShowDetailsById(eventId);
+        } else {
+          eventData = await getEventDetailsById(eventId);
+        }
+
         // Fetch inventory from booking-service
         const inventoryData = await getInventoryByEventId(eventId);
 
@@ -77,38 +92,66 @@ const ViewEditInventory = () => {
           };
 
           // Reset form with fetched data
-          reset({
-            // Event Details from organize-service
-            eventTitle: eventData.title || "",
-            shortDescription: eventData.shortDescription || "",
-            eventCategory: eventData.eventCategory || "",
-            startDate: formatDate(eventData.startDate),
-            endDate: formatDate(eventData.endDate),
-            startTime: eventData.startTime || "",
-            endTime: eventData.endTime || "",
-            city: eventData.city || "",
-            state: eventData.state || "",
-            country: eventData.country || "",
-            latitude: eventData.locationCoordinates?.latitude || "",
-            longitude: eventData.locationCoordinates?.longitude || "",
+          if (show) {
+            // Show-specific fields
+            reset({
+              movieName: eventData.movieName || "",
+              showDate: formatDate(eventData.showDate),
+              showTime: eventData.showTime || "",
+              endTime: eventData.endTime || "",
+              showStatus: eventData.showStatus || "draft",
 
-            // Inventory Details from booking-service
-            ticketTypes:
-              inventoryData.ticketTypes?.map((ticket) => ({
-                type: ticket.type,
-                price: ticket.price,
-                totalCapacity: ticket.totalCapacity,
-                description: ticket.description || "",
-              })) || [],
-            maxTicketsPerBooking:
-              inventoryData.bookingSettings?.maxTicketsPerBooking || 10,
-            bookingOpenDate: formatDate(
-              inventoryData.bookingSettings?.bookingOpenDate
-            ),
-            bookingCloseDate: formatDate(
-              inventoryData.bookingSettings?.bookingCloseDate
-            ),
-          });
+              // Inventory Details from booking-service
+              ticketTypes:
+                inventoryData.ticketTypes?.map((ticket) => ({
+                  type: ticket.type,
+                  price: ticket.price,
+                  totalCapacity: ticket.totalCapacity,
+                  description: ticket.description || "",
+                })) || [],
+              maxTicketsPerBooking:
+                inventoryData.bookingSettings?.maxTicketsPerBooking || 10,
+              bookingOpenDate: formatDate(
+                inventoryData.bookingSettings?.bookingOpenDate
+              ),
+              bookingCloseDate: formatDate(
+                inventoryData.bookingSettings?.bookingCloseDate
+              ),
+            });
+          } else {
+            // Event fields
+            reset({
+              eventTitle: eventData.title || "",
+              shortDescription: eventData.shortDescription || "",
+              eventCategory: eventData.eventCategory || "",
+              startDate: formatDate(eventData.startDate),
+              endDate: formatDate(eventData.endDate),
+              startTime: eventData.startTime || "",
+              endTime: eventData.endTime || "",
+              city: eventData.city || "",
+              state: eventData.state || "",
+              country: eventData.country || "",
+              latitude: eventData.locationCoordinates?.latitude || "",
+              longitude: eventData.locationCoordinates?.longitude || "",
+
+              // Inventory Details from booking-service
+              ticketTypes:
+                inventoryData.ticketTypes?.map((ticket) => ({
+                  type: ticket.type,
+                  price: ticket.price,
+                  totalCapacity: ticket.totalCapacity,
+                  description: ticket.description || "",
+                })) || [],
+              maxTicketsPerBooking:
+                inventoryData.bookingSettings?.maxTicketsPerBooking || 10,
+              bookingOpenDate: formatDate(
+                inventoryData.bookingSettings?.bookingOpenDate
+              ),
+              bookingCloseDate: formatDate(
+                inventoryData.bookingSettings?.bookingCloseDate
+              ),
+            });
+          }
         }
         setLoading(false);
       }
@@ -175,47 +218,72 @@ const ViewEditInventory = () => {
   const handleUpdate = async () => {
     const values = getValues();
 
-    // Format data for event update (organize-service format)
-    const eventUpdateData = {
-      title: values.eventTitle,
-      shortDescription: values.shortDescription,
-      eventCategory: values.eventCategory,
-      startDate: values.startDate,
-      endDate: values.endDate,
-      startTime: values.startTime,
-      endTime: values.endTime,
-      city: values.city,
-      state: values.state,
-      country: values.country,
-      locationCoordinates: {
-        latitude: parseFloat(values.latitude) || 0,
-        longitude: parseFloat(values.longitude) || 0,
-      },
-    };
-
     setUpdating(true);
-    const result = await updateEvent(eventId, eventUpdateData);
-    setUpdating(false);
+    let result;
 
-    if (result) {
-      // Refresh event data
-      const eventData = await getEventDetailsById(eventId);
-      if (eventData) {
-        setEvent(eventData);
+    if (show) {
+      // Format data for show update
+      const showUpdateData = {
+        movieName: values.movieName,
+        showDate: values.showDate,
+        showTime: values.showTime,
+        endTime: values.endTime,
+        showStatus: values.showStatus,
+      };
+
+      result = await updateShow(eventId, showUpdateData);
+      if (result) {
+        const showData = await getShowDetailsById(eventId);
+        if (showData) {
+          setEvent(showData);
+        }
+      }
+    } else {
+      // Format data for event update (organize-service format)
+      const eventUpdateData = {
+        title: values.eventTitle,
+        shortDescription: values.shortDescription,
+        eventCategory: values.eventCategory,
+        startDate: values.startDate,
+        endDate: values.endDate,
+        startTime: values.startTime,
+        endTime: values.endTime,
+        city: values.city,
+        state: values.state,
+        country: values.country,
+        locationCoordinates: {
+          latitude: parseFloat(values.latitude) || 0,
+          longitude: parseFloat(values.longitude) || 0,
+        },
+      };
+
+      result = await updateEvent(eventId, eventUpdateData);
+      if (result) {
+        const eventData = await getEventDetailsById(eventId);
+        if (eventData) {
+          setEvent(eventData);
+        }
       }
     }
+
+    setUpdating(false);
   };
 
   const handleStausUpdate = async () => {
     try {
-      setUpdating(true)
+      setUpdating(true);
       await handleUpdate();
       await handleUpdateInvt();
-      await updateEvent(event._id , {eventStatus : "scheduled"})
+
+      if (show) {
+        await updateShow(event._id, { showStatus: "scheduled" });
+      } else {
+        await updateEvent(event._id, { eventStatus: "scheduled" });
+      }
     } catch (error) {
-      console.log("error while updating " , error)
-    }finally{
-      setUpdating(false)
+      console.log("error while updating ", error);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -249,239 +317,351 @@ const ViewEditInventory = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* SECTION 1: Event Details */}
+        {/* SECTION 1: Event/Show Details */}
         <div className="bg-white rounded-lg shadow-md p-6 border-2 border-blue-950">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-[#00ABE4]">
-            Event Details
+            {show ? "Show Details" : "Event Details"}
           </h2>
 
           <div className="space-y-4">
-            {/* Event Title */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Event Title
-              </label>
-              <Controller
-                name="eventTitle"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Enter event title"
+            {show ? (
+              // Show-specific fields
+              <>
+                {/* Movie Name */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Movie Name
+                  </label>
+                  <Controller
+                    name="movieName"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter movie name"
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            {/* Short Description */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Short Description
-              </label>
-              <Controller
-                name="shortDescription"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    className="w-full p-2 border rounded-md h-20"
-                    placeholder="Brief description of the event"
+                {/* Show Date */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Show Date
+                  </label>
+                  <Controller
+                    name="showDate"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="date"
+                        className="w-full p-2 border rounded-md"
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            {/* Event Category */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Event Category
-              </label>
-              <Controller
-                name="eventCategory"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className="w-full p-2 border rounded-md">
-                    <option value="">Select category</option>
-                    <option value="Conference">Conference</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Concert">Concert</option>
-                    <option value="Seminar">Seminar</option>
-                    <option value="Music">Music</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Arts">Arts</option>
-                    <option value="Food">Food</option>
-                    <option value="Other">Other</option>
-                  </select>
-                )}
-              />
-            </div>
+                {/* Show Time and End Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Show Time
+                    </label>
+                    <Controller
+                      name="showTime"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="time"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      End Time
+                    </label>
+                    <Controller
+                      name="endTime"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="time"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
 
-            {/* Date Fields - Side by Side */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <Controller
-                  name="startDate"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="date"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  )}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  End Date
-                </label>
-                <Controller
-                  name="endDate"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="date"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Time Fields - Side by Side */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Start Time
-                </label>
-                <Controller
-                  name="startTime"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="time"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  )}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  End Time
-                </label>
-                <Controller
-                  name="endTime"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="time"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Location Fields */}
-            <div>
-              <label className="block text-sm font-medium mb-1">City</label>
-              <Controller
-                name="city"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Enter city"
+                {/* Show Status */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Show Status
+                  </label>
+                  <Controller
+                    name="showStatus"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="booking_open">Booking Open</option>
+                        <option value="sold_out">Sold Out</option>
+                        <option value="booking_closed">Booking Closed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    )}
                   />
-                )}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">State</label>
-              <Controller
-                name="state"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Enter state"
+                </div>
+              </>
+            ) : (
+              // Event-specific fields
+              <>
+                {/* Event Title */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Event Title
+                  </label>
+                  <Controller
+                    name="eventTitle"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter event title"
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Country</label>
-              <Controller
-                name="country"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Enter country"
+                {/* Short Description */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Short Description
+                  </label>
+                  <Controller
+                    name="shortDescription"
+                    control={control}
+                    render={({ field }) => (
+                      <textarea
+                        {...field}
+                        className="w-full p-2 border rounded-md h-20"
+                        placeholder="Brief description of the event"
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            {/* Coordinates - Side by Side */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Latitude
-                </label>
-                <Controller
-                  name="latitude"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="number"
-                      step="any"
-                      className="w-full p-2 border rounded-md"
-                      placeholder="e.g., 19.0760"
+                {/* Event Category */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Event Category
+                  </label>
+                  <Controller
+                    name="eventCategory"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="">Select category</option>
+                        <option value="Conference">Conference</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Concert">Concert</option>
+                        <option value="Seminar">Seminar</option>
+                        <option value="Music">Music</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Arts">Arts</option>
+                        <option value="Food">Food</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    )}
+                  />
+                </div>
+
+                {/* Date Fields - Side by Side */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Start Date
+                    </label>
+                    <Controller
+                      name="startDate"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="date"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
                     />
-                  )}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Longitude
-                </label>
-                <Controller
-                  name="longitude"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="number"
-                      step="any"
-                      className="w-full p-2 border rounded-md"
-                      placeholder="e.g., 72.8777"
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      End Date
+                    </label>
+                    <Controller
+                      name="endDate"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="date"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
                     />
-                  )}
-                />
-              </div>
-            </div>
+                  </div>
+                </div>
+
+                {/* Time Fields - Side by Side */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Start Time
+                    </label>
+                    <Controller
+                      name="startTime"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="time"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      End Time
+                    </label>
+                    <Controller
+                      name="endTime"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="time"
+                          className="w-full p-2 border rounded-md"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Location Fields */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">City</label>
+                  <Controller
+                    name="city"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter city"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    State
+                  </label>
+                  <Controller
+                    name="state"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter state"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Country
+                  </label>
+                  <Controller
+                    name="country"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Enter country"
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* Coordinates - Side by Side */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Latitude
+                    </label>
+                    <Controller
+                      name="latitude"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          step="any"
+                          className="w-full p-2 border rounded-md"
+                          placeholder="e.g., 19.0760"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Longitude
+                    </label>
+                    <Controller
+                      name="longitude"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          step="any"
+                          className="w-full p-2 border rounded-md"
+                          placeholder="e.g., 72.8777"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Update Button for Event Details */}
+          {/* Update Button for Event/Show Details */}
           <div className="mt-6">
             <button
               onClick={handleUpdate}
@@ -489,7 +669,7 @@ const ViewEditInventory = () => {
               className="w-full px-6 py-3 text-white rounded-md hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#00ABE4" }}
             >
-              {updating ? "Updating..." : "Update Event"}
+              {updating ? "Updating..." : show ? "Update Show" : "Update Event"}
             </button>
           </div>
         </div>
@@ -505,14 +685,23 @@ const ViewEditInventory = () => {
               Ticket Types
             </h3>
 
+            {show && (
+              <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> For shows, ticket types and capacities
+                  are fixed based on screen layout. You can only update prices.
+                </p>
+              </div>
+            )}
+
             {/* Ticket Types */}
             {fields.map((field, index) => (
               <div
                 key={field.id}
                 className="p-4 border-2 border-blue-100 rounded-lg space-y-3 relative"
               >
-                {/* Remove button */}
-                {fields.length > 1 && (
+                {/* Remove button - only for events */}
+                {!show && fields.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeTicketType(index)}
@@ -538,7 +727,10 @@ const ViewEditInventory = () => {
                       <input
                         {...field}
                         type="text"
-                        className="w-full p-2 border rounded-md"
+                        disabled={show}
+                        className={`w-full p-2 border rounded-md capitalize ${
+                          show ? "bg-gray-100 cursor-not-allowed" : ""
+                        }`}
                         placeholder="e.g., VIP, General, Early Bird"
                       />
                     )}
@@ -578,7 +770,10 @@ const ViewEditInventory = () => {
                           {...field}
                           type="number"
                           min="1"
-                          className="w-full p-2 border rounded-md"
+                          disabled={show}
+                          className={`w-full p-2 border rounded-md ${
+                            show ? "bg-gray-100 cursor-not-allowed" : ""
+                          }`}
                           placeholder="100"
                         />
                       )}
@@ -597,7 +792,10 @@ const ViewEditInventory = () => {
                     render={({ field }) => (
                       <textarea
                         {...field}
-                        className="w-full p-2 border rounded-md h-20"
+                        disabled={show}
+                        className={`w-full p-2 border rounded-md h-20 ${
+                          show ? "bg-gray-100 cursor-not-allowed" : ""
+                        }`}
                         placeholder="Brief description of this ticket type"
                       />
                     )}
@@ -606,16 +804,18 @@ const ViewEditInventory = () => {
               </div>
             ))}
 
-            {/* Add Ticket Type Button */}
-            <button
-              type="button"
-              onClick={addTicketType}
-              className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg 
-                       text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
-            >
-              <Plus size={18} />
-              Add Another Ticket Type
-            </button>
+            {/* Add Ticket Type Button - only for events */}
+            {!show && (
+              <button
+                type="button"
+                onClick={addTicketType}
+                className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg 
+                         text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Add Another Ticket Type
+              </button>
+            )}
 
             {/* Total Capacity Summary */}
             <div className="bg-blue-50 p-4 rounded-lg">

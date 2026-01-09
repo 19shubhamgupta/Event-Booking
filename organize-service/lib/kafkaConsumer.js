@@ -1,5 +1,6 @@
 const { Kafka } = require("kafkajs");
 const Event = require("../models/event");
+const show = require("../models/show");
 
 class kafkaConsumer {
   constructor() {
@@ -156,7 +157,21 @@ class kafkaConsumer {
       if (updatedEvent) {
         console.log(`✅ Booking dates updated for event ${data.eventId}`);
       } else {
+        
         console.log(`⚠️ Event ${data.eventId} not found in organize service`);
+        console.log(`⚠️  Event ${data.eventId} now searching for a show`);
+        const UpdatedShow = await show.findByIdAndUpdate(
+          { _id: data.eventId },
+          { $set: updateFields },
+          { new: true }
+        );
+
+        if(UpdatedShow){
+          console.log(`✅ Booking dates updated for show ${data.eventId}`); 
+        }else{
+          console.log(`⚠️ Show ${data.eventId} not found in organize service`);
+        }
+
       }
     } catch (error) {
       console.error(`❌ Error updating booking dates:`, error);
