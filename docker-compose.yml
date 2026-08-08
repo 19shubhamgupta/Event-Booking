@@ -1,27 +1,30 @@
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
     ports:
-      - "2181:2181"
+      - "6379:6379"
     networks:
       - event-booking-network
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      # --- KRaft mode: no Zookeeper ---
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -38,13 +41,127 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - event-booking-network
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./user-service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-booking-network
+
+  organize-service:
+    build: ./organize-service
+    container_name: organize-service
+    ports:
+      - "5003:5003"
+    environment:
+      PORT: 5003
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./organize-service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-booking-network
+
+  event-discovery:
+    build: ./event-discovery
+    container_name: event-discovery
+    ports:
+      - "5004:5004"
+    environment:
+      PORT: 5004
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./event-discovery/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-booking-network
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    ports:
+      - "5005:5005"
+    environment:
+      PORT: 5005
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./booking-service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-booking-network
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "5006:5006"
+    environment:
+      PORT: 5006
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./payment-service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-booking-network
+
+  dashboard-service:
+    build: ./dashboard-service
+    container_name: dashboard-service
+    ports:
+      - "5007:5007"
+    environment:
+      PORT: 5007
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+    env_file:
+      - ./dashboard-service/.env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - event-booking-network
 

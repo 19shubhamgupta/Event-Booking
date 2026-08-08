@@ -97,7 +97,7 @@ class kafkaConsumer {
 
       if (existingEvent) {
         console.log(
-          `⚠️  Event ${data.eventId} already exists in discovery service, skipping...`
+          `⚠️  Event ${data.eventId} already exists in discovery service, skipping...`,
         );
         return;
       }
@@ -154,7 +154,7 @@ class kafkaConsumer {
       const currEvent = await Event.create(eventData);
 
       console.log(
-        `✅ Event ${data.eventId} added to discovery service - "${data.title}" in ${data.city}`
+        `✅ Event ${data.eventId} added to discovery service - "${data.title}" in ${data.city}`,
       );
     } catch (error) {
       console.error(`❌ Error creating event in discovery service:`, error);
@@ -169,6 +169,9 @@ class kafkaConsumer {
       // Build update object with only provided fields
       const updateFields = {};
 
+      if (data.eventId !== undefined) updateFields.eventId = data.eventId;
+      if (data.organizationId !== undefined)
+        updateFields.organizationId = data.organizationId;
       if (data.title !== undefined) updateFields.title = data.title;
       if (data.shortDescription !== undefined)
         updateFields.shortDescription = data.shortDescription;
@@ -178,6 +181,12 @@ class kafkaConsumer {
         updateFields.endDate = new Date(data.endDate);
       if (data.startTime !== undefined) updateFields.startTime = data.startTime;
       if (data.endTime !== undefined) updateFields.endTime = data.endTime;
+      if (data.eventStatus !== undefined)
+        updateFields.eventStatus = data.eventStatus;
+      if (data.bookingOpenDate !== undefined)
+        updateFields.bookingOpenDate = new Date(data.bookingOpenDate);
+      if (data.bookingCloseDate !== undefined)
+        updateFields.bookingCloseDate = new Date(data.bookingCloseDate);
       if (data.city !== undefined) updateFields.city = data.city;
       if (data.state !== undefined) updateFields.state = data.state;
       if (data.country !== undefined) updateFields.country = data.country;
@@ -185,6 +194,8 @@ class kafkaConsumer {
         updateFields.eventCategory = data.eventCategory;
       if (data.coverImage !== undefined)
         updateFields.coverImage = data.coverImage;
+      if (data.eventStatus !== undefined)
+        updateFields.eventStatus = data.eventStatus;
 
       // Handle location coordinates if provided
       if (
@@ -201,7 +212,23 @@ class kafkaConsumer {
         };
       }
 
-      // Handle page slug if provided
+      // Also accept direct GeoJSON location updates
+      if (
+        data.location &&
+        data.location.type === "Point" &&
+        Array.isArray(data.location.coordinates) &&
+        data.location.coordinates.length === 2
+      ) {
+        updateFields.location = {
+          type: "Point",
+          coordinates: data.location.coordinates,
+        };
+      }
+
+      // Handle page fields if provided
+      if (data.page && data.page.pageId !== undefined) {
+        updateFields["page.pageId"] = data.page.pageId;
+      }
       if (data.page && data.page.slug !== undefined) {
         updateFields["page.slug"] = data.page.slug;
       }
@@ -210,7 +237,7 @@ class kafkaConsumer {
       const updatedEvent = await Event.findOneAndUpdate(
         { eventId: data.eventId },
         { $set: updateFields },
-        { new: true }
+        { new: true },
       );
 
       if (updatedEvent) {
@@ -240,7 +267,7 @@ class kafkaConsumer {
       const updatedEvent = await Event.findOneAndUpdate(
         { eventId: data.eventId },
         { $set: updateFields },
-        { new: true }
+        { new: true },
       );
 
       if (updatedEvent) {

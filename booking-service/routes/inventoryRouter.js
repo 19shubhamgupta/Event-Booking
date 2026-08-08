@@ -5,9 +5,7 @@ const {
   getBookingDatesByEventId,
   updateInventory,
 } = require("../controllers/inventoryController");
-const {
-  verifyToken,
-} = require("../../payment-service/middlewares/verifyToken");
+const { verifyToken } = require("../middlewares/verifyToken");
 
 const inventoryRouter = express.Router();
 
@@ -15,12 +13,12 @@ inventoryRouter.post("/create-inventory", verifyToken, postCreateInventory);
 inventoryRouter.get(
   "/get-inventory/:eventId",
   verifyToken,
-  getInventoryByEventId
+  getInventoryByEventId,
 );
 inventoryRouter.get(
   "/booking-dates/:eventId",
   verifyToken,
-  getBookingDatesByEventId
+  getBookingDatesByEventId,
 );
 inventoryRouter.put("/update-inventory/:eventId", verifyToken, updateInventory);
 

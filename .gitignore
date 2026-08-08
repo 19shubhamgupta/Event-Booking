@@ -103,3 +103,10 @@ docker-compose.override.yml
 *.pem
 *.key
 *.cert
+
+
+#ignore mds
+*.md
+*.bat
+
+docker-compose-local.yml

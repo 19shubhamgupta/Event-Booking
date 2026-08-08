@@ -14,7 +14,7 @@ const HomePage = () => {
           <div className="w-full mx-auto bg-white h-150 overflow-hidden rounded-2xl">
             {/* Banner Images (Highlighted Events) */}
             <img
-              src="/banner1.jpg"
+              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="banner"
               className="w-full h-auto object-contain"
             />

@@ -36,6 +36,11 @@ app.use("/theater", theaterRouter);
 app.use("/screen", screenRouter);
 app.use("/show", showRouter);
 
+// health check api
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 async function startServer() {
   try {
     await ConnectDB();

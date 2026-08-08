@@ -2,7 +2,6 @@ const { Kafka } = require("kafkajs");
 
 const { bookTickets } = require("../controllers/bookController");
 const { cancelReservation } = require("../controllers/reservationController");
-const { handleEventUpdated } = require("../../dashboard-service/lib/kafkaconsumer");
 
 class kafkaConsumer {
   constructor() {
@@ -104,7 +103,7 @@ class kafkaConsumer {
     } catch (error) {
       console.error(
         "❌ Error processing payment complete in kafkaconsumer:",
-        error
+        error,
       );
       throw error; // Re-throw to trigger Kafka retry mechanism
     }
@@ -118,7 +117,7 @@ class kafkaConsumer {
       const EventInventoryService = require("../lib/SeriveClass/EventInventoryService");
       const kafkaProducer = require("./kafkaProducer");
       const inventory = await EventInventoryService.getInventoryByEventId(
-        data.eventId
+        data.eventId,
       );
 
       if (inventory && inventory.bookingSettings) {
@@ -133,7 +132,7 @@ class kafkaConsumer {
       } else {
         console.log(
           "⚠️ No inventory or booking settings found for event:",
-          data.eventId
+          data.eventId,
         );
       }
     } catch (error) {

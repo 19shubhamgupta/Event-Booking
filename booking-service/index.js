@@ -29,6 +29,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/reserve", reservationRoter);
 app.use("/inventory", inventoryRouter);
 
+// health check api
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 async function startServer() {
   try {
     await ConnectDB();

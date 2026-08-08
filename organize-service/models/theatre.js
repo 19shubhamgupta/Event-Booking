@@ -24,7 +24,7 @@ const theatreSchema = new mongoose.Schema({
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Screen",
-      deafault: [],
+      default: [],
     },
   ],
 });

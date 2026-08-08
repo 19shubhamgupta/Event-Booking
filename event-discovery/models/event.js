@@ -94,7 +94,7 @@ const eventSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      default: "United States",
+      default: "India",
     },
 
     // GeoJSON location for geospatial queries
