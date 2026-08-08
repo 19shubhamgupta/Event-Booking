@@ -25,6 +25,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/manage", inventoryRouter);
 app.use("/realtime-dashboard" , SSErouter)
+// health check api
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 async function startServer() {
   try {

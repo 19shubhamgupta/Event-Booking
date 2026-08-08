@@ -23,6 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/pay", paymentRouter)
 
+// health check api
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 async function startServer() {
   try {
     await kafkaProducer.connect(); // Start listening to events
