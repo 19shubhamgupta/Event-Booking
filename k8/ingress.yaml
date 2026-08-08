@@ -37,14 +37,14 @@ spec:
                 name: event-discovery
                 port:
                   number: 5004
-          - path: /book(/|$)(.*)
+          - path: /booking(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: booking-service
                 port:
                   number: 5005
-          - path: /payment(/|$)(.*)
+          - path: /payments(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:

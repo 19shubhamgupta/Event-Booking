@@ -73,6 +73,9 @@ exports.postSignup = async (req, res) => {
 
 exports.postLogout = (req, res) => {
   res.cookie("token", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
     maxAge: 0,
   });
   res.status(200).json({ message: "Logged out successfully" });

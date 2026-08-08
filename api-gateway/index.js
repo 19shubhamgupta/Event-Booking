@@ -5,18 +5,31 @@ const proxy = require("express-http-proxy");
 const app = express();
 
 // API Gateway handles CORS for client
+const allowedOrigins = new Set(
+  [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : []),
+  ].map((o) => o.trim())
+);
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:4173",
-      "https://event-booking-beta-gold.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.has(origin) ||
+        /^https:\/\/.+\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
-); 
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

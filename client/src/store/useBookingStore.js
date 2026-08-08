@@ -111,7 +111,7 @@ export const useBookingStore = create((set) => ({
       const data = {
         reservationId: reservationId,
       };
-      const res = await axiosInstance.post("/booking/reservation/cancel-reservation", data);
+      const res = await axiosInstance.post("/booking/reserve/cancel-reservation", data);
       toast.success("Reservation Cancelled.");
     } catch (err) {
       if (err.response) {
